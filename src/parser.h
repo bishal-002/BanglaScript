@@ -23,6 +23,11 @@ public:
     bool check(TokenType type) const;
 
     void parseDeclaration();
+    void parseAssignment();
+    void parseExpression();
+
+    void parseIfElse();
+    void parseCondition();
 };
 
 #endif

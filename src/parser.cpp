@@ -21,20 +21,90 @@ Token Parser::advance()
 
 bool Parser::check(TokenType type) const
 {
+    if(current >= tokens.size())
+    {
+        return false;
+    }
+
     return peek().type == type;
 }
 
-void Parser::parseDeclaration()
+void Parser::parseExpression()
 {
-    if (!check(TokenType::KEYWORD_DHORI))
+    if(check(TokenType::NUMBER))
     {
-        std::cout << "Expected ধরি\n";
+        advance();
+    }
+    else if(check(TokenType::IDENTIFIER))
+    {
+        advance();
+
+        if(check(TokenType::PLUS) ||
+           check(TokenType::MINUS) ||
+           check(TokenType::STAR) ||
+           check(TokenType::SLASH))
+        {
+            advance();
+
+            if(check(TokenType::NUMBER) ||
+               check(TokenType::IDENTIFIER))
+            {
+                advance();
+            }
+            else
+            {
+                std::cout
+                    << "Expected value after operator\n";
+            }
+        }
+    }
+    else
+    {
+        std::cout << "Invalid expression\n";
+    }
+}
+
+void Parser::parseCondition()
+{
+    if(!check(TokenType::IDENTIFIER))
+    {
+        std::cout
+            << "Expected identifier in condition\n";
         return;
     }
 
     advance();
 
-    if (!check(TokenType::TYPE_SONGKHA))
+    if(!(check(TokenType::GT)  ||
+         check(TokenType::LT)  ||
+         check(TokenType::GTE) ||
+         check(TokenType::LTE) ||
+         check(TokenType::EQ)  ||
+         check(TokenType::NEQ)))
+    {
+        std::cout
+            << "Expected comparison operator\n";
+        return;
+    }
+
+    advance();
+
+    if(!(check(TokenType::NUMBER) ||
+         check(TokenType::IDENTIFIER)))
+    {
+        std::cout
+            << "Expected comparison value\n";
+        return;
+    }
+
+    advance();
+}
+
+void Parser::parseDeclaration()
+{
+    advance();
+
+    if(!check(TokenType::TYPE_SONGKHA))
     {
         std::cout << "Expected সংখ্যা\n";
         return;
@@ -42,7 +112,7 @@ void Parser::parseDeclaration()
 
     advance();
 
-    if (!check(TokenType::IDENTIFIER))
+    if(!check(TokenType::IDENTIFIER))
     {
         std::cout << "Expected Identifier\n";
         return;
@@ -50,7 +120,7 @@ void Parser::parseDeclaration()
 
     advance();
 
-    if (!check(TokenType::ASSIGN))
+    if(!check(TokenType::ASSIGN))
     {
         std::cout << "Expected =\n";
         return;
@@ -58,27 +128,156 @@ void Parser::parseDeclaration()
 
     advance();
 
-    if (!check(TokenType::NUMBER))
-    {
-        std::cout << "Expected Number\n";
-        return;
-    }
+    parseExpression();
 
-    advance();
-
-    if (!check(TokenType::SEMICOLON))
+    if(!check(TokenType::SEMICOLON))
     {
         std::cout << "Expected ;\n";
         return;
     }
 
+    advance();
+
     std::cout
         << "Declaration Parsed Successfully\n";
 }
 
+void Parser::parseAssignment()
+{
+    advance();
+
+    if(!check(TokenType::ASSIGN))
+    {
+        std::cout << "Expected =\n";
+        return;
+    }
+
+    advance();
+
+    parseExpression();
+
+    if(!check(TokenType::SEMICOLON))
+    {
+        std::cout << "Expected ;\n";
+        return;
+    }
+
+    advance();
+
+    std::cout
+        << "Assignment Parsed Successfully\n";
+}
+
+void Parser::parseIfElse()
+{
+    advance(); // যদি
+
+    if(!check(TokenType::LPAREN))
+    {
+        std::cout
+            << "Expected (\n";
+        return;
+    }
+
+    advance();
+
+    parseCondition();
+
+    if(!check(TokenType::RPAREN))
+    {
+        std::cout
+            << "Expected )\n";
+        return;
+    }
+
+    advance();
+
+    if(!check(TokenType::LBRACE))
+    {
+        std::cout
+            << "Expected {\n";
+        return;
+    }
+
+    advance();
+
+    while(check(TokenType::IDENTIFIER))
+    {
+        parseAssignment();
+    }
+
+    if(!check(TokenType::RBRACE))
+    {
+        std::cout
+            << "Expected }\n";
+        return;
+    }
+
+    advance();
+
+    if(!check(TokenType::KEYWORD_NAHOLE))
+    {
+        std::cout
+            << "Expected নাহলে\n";
+        return;
+    }
+
+    advance();
+
+    if(!check(TokenType::LBRACE))
+    {
+        std::cout
+            << "Expected {\n";
+        return;
+    }
+
+    advance();
+
+    while(check(TokenType::IDENTIFIER))
+    {
+        parseAssignment();
+    }
+
+    if(!check(TokenType::RBRACE))
+    {
+        std::cout
+            << "Expected }\n";
+        return;
+    }
+
+    advance();
+
+    std::cout
+        << "If-Else Parsed Successfully\n";
+}
+
 std::shared_ptr<ProgramNode> Parser::parse()
 {
-    parseDeclaration();
+    while(current < tokens.size() &&
+          tokens[current].type != TokenType::END_OF_FILE)
+    {
+        if(check(TokenType::KEYWORD_DHORI))
+        {
+            parseDeclaration();
+        }
+        else if(check(TokenType::KEYWORD_JODI))
+        {
+            parseIfElse();
+        }
+        else if(check(TokenType::IDENTIFIER))
+        {
+            parseAssignment();
+        }
+        else
+        {
+            std::cout
+                << "Unexpected token: "
+                << peek().lexeme
+                << "\n";
+
+            advance();
+        }
+    }
 
     return std::make_shared<ProgramNode>();
 }
