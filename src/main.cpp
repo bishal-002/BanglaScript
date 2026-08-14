@@ -4,6 +4,7 @@
 
 #include "lexer.h"
 #include "parser.h"
+#include "symbol_table.h"
 
 std::string tokenTypeToString(TokenType type)
 {
@@ -94,6 +95,20 @@ int main()
     Parser parser(tokens);
 
     parser.parse();
+
+    SymbolTable table;
+
+    if (table.declare("ক", "সংখ্যা"))
+    {
+        std::cout
+            << "Variable Declared\n";
+    }
+
+    if (!table.declare("ক", "সংখ্যা"))
+    {
+        std::cout
+            << "Duplicate Variable\n";
+    }
 
     return 0;
 }
