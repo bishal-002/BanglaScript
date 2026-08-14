@@ -18,16 +18,21 @@ public:
 
     std::shared_ptr<ProgramNode> parse();
 
+private:
     Token peek() const;
     Token advance();
     bool check(TokenType type) const;
+    bool isAtEnd() const;
 
-    void parseDeclaration();
-    void parseAssignment();
-    void parseExpression();
+    std::shared_ptr<Statement> parseStatement();
 
-    void parseIfElse();
-    void parseCondition();
+    std::shared_ptr<Statement> parseDeclaration();
+    std::shared_ptr<Statement> parseAssignment();
+    std::shared_ptr<Statement> parseIfElse();
+
+    std::shared_ptr<Expression> parseExpression();
+    std::shared_ptr<Expression> parsePrimary();
+    std::shared_ptr<Expression> parseCondition();
 };
 
 #endif
