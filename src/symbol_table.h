@@ -15,7 +15,13 @@ public:
         const std::string& type
     );
 
-    bool exists(const std::string& name) const;
+    bool exists(
+        const std::string& name
+    ) const;
+
+    std::string getType(
+        const std::string& name
+    ) const;
 };
 
 #endif
