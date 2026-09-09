@@ -288,6 +288,8 @@ void printStatement(
 
 int main()
 {
+    std::setlocale(LC_ALL, "bn_BD.UTF-8");
+
     std::string source =
         "ধরি সংখ্যা ক = ১০;\n"
         "ক = ক + ২০;\n"

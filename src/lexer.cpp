@@ -79,52 +79,6 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
-        // Identifier / keyword
-        if (std::isalpha(static_cast<unsigned char>(current)) ||
-            static_cast<unsigned char>(current) >= 128)
-        {
-            std::string value;
-
-            while (position < source.length())
-            {
-                unsigned char c =
-                    static_cast<unsigned char>(source[position]);
-
-                if (std::isalnum(c) || c >= 128)
-                {
-                    value += source[position];
-                    position++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            static const std::unordered_map<std::string, TokenType> keywords =
-                {
-                    {"ধরি", TokenType::KEYWORD_DHORI},
-                    {"যদি", TokenType::KEYWORD_JODI},
-                    {"নাহলে", TokenType::KEYWORD_NAHOLE},
-                    {"সংখ্যা", TokenType::TYPE_SONGKHA}};
-
-            auto it = keywords.find(value);
-
-            if (it != keywords.end())
-            {
-                tokens.emplace_back(it->second, value, line);
-            }
-            else
-            {
-                tokens.emplace_back(
-                    TokenType::IDENTIFIER,
-                    value,
-                    line);
-            }
-
-            continue;
-        }
-
         // Bangla Number
         if (isBanglaDigitAt(source, position))
         {
@@ -175,6 +129,52 @@ std::vector<Token> Lexer::tokenize()
             throw std::runtime_error(
                 "English numerals are not allowed. "
                 "Use Bangla numerals (০-৯).");
+        }
+
+        // Identifier / keyword
+        if (std::isalpha(static_cast<unsigned char>(current)) ||
+            static_cast<unsigned char>(current) >= 128)
+        {
+            std::string value;
+
+            while (position < source.length())
+            {
+                unsigned char c =
+                    static_cast<unsigned char>(source[position]);
+
+                if (std::isalnum(c) || c >= 128)
+                {
+                    value += source[position];
+                    position++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            static const std::unordered_map<std::string, TokenType> keywords =
+                {
+                    {"ধরি", TokenType::KEYWORD_DHORI},
+                    {"যদি", TokenType::KEYWORD_JODI},
+                    {"নাহলে", TokenType::KEYWORD_NAHOLE},
+                    {"সংখ্যা", TokenType::TYPE_SONGKHA}};
+
+            auto it = keywords.find(value);
+
+            if (it != keywords.end())
+            {
+                tokens.emplace_back(it->second, value, line);
+            }
+            else
+            {
+                tokens.emplace_back(
+                    TokenType::IDENTIFIER,
+                    value,
+                    line);
+            }
+
+            continue;
         }
 
         // Two-character operators
