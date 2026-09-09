@@ -5,28 +5,26 @@
 
 enum class TokenType
 {
-    // Keywords
     KEYWORD_DHORI,
     KEYWORD_JODI,
     KEYWORD_NAHOLE,
+    KEYWORD_JOTOKKHON,
+    KEYWORD_DEKHAO,
 
-    // Types
     TYPE_SONGKHA,
+    TYPE_LEKHA,
 
-    // Identifiers & Literals
     IDENTIFIER,
     NUMBER,
+    STRING_LITERAL,
 
-    // Arithmetic Operators
     PLUS,
     MINUS,
     STAR,
     SLASH,
 
-    // Assignment
     ASSIGN,
 
-    // Comparison Operators
     GT,
     LT,
     GTE,
@@ -34,14 +32,14 @@ enum class TokenType
     EQ,
     NEQ,
 
-    // Delimiters
     SEMICOLON,
+
     LPAREN,
     RPAREN,
+
     LBRACE,
     RBRACE,
 
-    // Special
     END_OF_FILE,
     UNKNOWN
 };
