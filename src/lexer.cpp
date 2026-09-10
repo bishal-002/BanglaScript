@@ -154,11 +154,12 @@ std::vector<Token> Lexer::tokenize()
             }
 
             static const std::unordered_map<std::string, TokenType> keywords =
-                {
-                    {"ধরি", TokenType::KEYWORD_DHORI},
-                    {"যদি", TokenType::KEYWORD_JODI},
-                    {"নাহলে", TokenType::KEYWORD_NAHOLE},
-                    {"সংখ্যা", TokenType::TYPE_SONGKHA}};
+            {
+                {"ধরি", TokenType::KEYWORD_DHORI},
+                {"যদি", TokenType::KEYWORD_JODI},
+                {"নাহলে", TokenType::KEYWORD_NAHOLE},
+                {"সংখ্যা", TokenType::TYPE_SONGKHA}
+            };
 
             auto it = keywords.find(value);
 
