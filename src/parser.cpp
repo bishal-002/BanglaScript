@@ -74,16 +74,25 @@ std::shared_ptr<ProgramNode> Parser::parse()
 
 std::shared_ptr<Statement> Parser::parseStatement()
 {
+    // Declaration
     if (check(TokenType::KEYWORD_DHORI))
     {
         return parseDeclaration();
     }
 
+    // If / Else
     if (check(TokenType::KEYWORD_JODI))
     {
         return parseIfElse();
     }
 
+    // While Loop
+    if (check(TokenType::KEYWORD_JOTOKKHON))
+    {
+        return parseWhile();
+    }
+
+    // Assignment
     if (check(TokenType::IDENTIFIER))
     {
         return parseAssignment();
@@ -96,6 +105,7 @@ std::shared_ptr<Statement> Parser::parseStatement()
 
 std::shared_ptr<Statement> Parser::parseDeclaration()
 {
+    // Consume "ধরি"
     advance();
 
     if (!check(TokenType::TYPE_SONGKHA))
@@ -105,6 +115,7 @@ std::shared_ptr<Statement> Parser::parseDeclaration()
         );
     }
 
+    // Get variable type
     std::string variableType = advance().lexeme;
 
     if (!check(TokenType::IDENTIFIER))
@@ -114,6 +125,7 @@ std::shared_ptr<Statement> Parser::parseDeclaration()
         );
     }
 
+    // Get variable name
     std::string variableName = advance().lexeme;
 
     if (!check(TokenType::ASSIGN))
@@ -123,8 +135,10 @@ std::shared_ptr<Statement> Parser::parseDeclaration()
         );
     }
 
+    // Consume "="
     advance();
 
+    // Parse value
     auto value = parseExpression();
 
     if (!check(TokenType::SEMICOLON))
@@ -134,6 +148,7 @@ std::shared_ptr<Statement> Parser::parseDeclaration()
         );
     }
 
+    // Consume ";"
     advance();
 
     return std::make_shared<DeclarationNode>(
@@ -145,9 +160,9 @@ std::shared_ptr<Statement> Parser::parseDeclaration()
 
 std::shared_ptr<Statement> Parser::parseAssignment()
 {
+    // Get variable name
     std::string variableName = advance().lexeme;
 
-    // =
     if (!check(TokenType::ASSIGN))
     {
         throw std::runtime_error(
@@ -155,11 +170,12 @@ std::shared_ptr<Statement> Parser::parseAssignment()
         );
     }
 
+    // Consume "="
     advance();
 
+    // Parse value
     auto value = parseExpression();
 
-    // ;
     if (!check(TokenType::SEMICOLON))
     {
         throw std::runtime_error(
@@ -167,6 +183,7 @@ std::shared_ptr<Statement> Parser::parseAssignment()
         );
     }
 
+    // Consume ";"
     advance();
 
     return std::make_shared<AssignmentNode>(
@@ -198,9 +215,9 @@ std::shared_ptr<Expression> Parser::parseExpression()
     return left;
 }
 
-
 std::shared_ptr<Expression> Parser::parsePrimary()
 {
+    // Number
     if (check(TokenType::NUMBER))
     {
         int value = std::stoi(advance().lexeme);
@@ -208,6 +225,7 @@ std::shared_ptr<Expression> Parser::parsePrimary()
         return std::make_shared<NumberNode>(value);
     }
 
+    // Identifier
     if (check(TokenType::IDENTIFIER))
     {
         std::string name = advance().lexeme;
@@ -249,6 +267,7 @@ std::shared_ptr<Expression> Parser::parseCondition()
 
 std::shared_ptr<Statement> Parser::parseIfElse()
 {
+    // Consume "যদি"
     advance();
 
     if (!check(TokenType::LPAREN))
@@ -258,8 +277,10 @@ std::shared_ptr<Statement> Parser::parseIfElse()
         );
     }
 
+    // Consume "("
     advance();
 
+    // Parse condition
     auto condition = parseCondition();
 
     if (!check(TokenType::RPAREN))
@@ -269,6 +290,7 @@ std::shared_ptr<Statement> Parser::parseIfElse()
         );
     }
 
+    // Consume ")"
     advance();
 
     if (!check(TokenType::LBRACE))
@@ -278,12 +300,14 @@ std::shared_ptr<Statement> Parser::parseIfElse()
         );
     }
 
+    // Consume "{"
     advance();
 
     auto ifElseNode = std::make_shared<IfElseNode>();
 
     ifElseNode->condition = condition;
 
+    // Parse IF body
     while (!check(TokenType::RBRACE) &&
            !isAtEnd())
     {
@@ -302,10 +326,13 @@ std::shared_ptr<Statement> Parser::parseIfElse()
         );
     }
 
+    // Consume "}"
     advance();
 
+    // Check for "নাহলে"
     if (check(TokenType::KEYWORD_NAHOLE))
     {
+        // Consume "নাহলে"
         advance();
 
         if (!check(TokenType::LBRACE))
@@ -315,8 +342,10 @@ std::shared_ptr<Statement> Parser::parseIfElse()
             );
         }
 
+        // Consume "{"
         advance();
 
+        // Parse ELSE body
         while (!check(TokenType::RBRACE) &&
                !isAtEnd())
         {
@@ -335,8 +364,76 @@ std::shared_ptr<Statement> Parser::parseIfElse()
             );
         }
 
+        // Consume "}"
         advance();
     }
 
     return ifElseNode;
+}
+
+std::shared_ptr<Statement> Parser::parseWhile()
+{
+    // Consume "যতক্ষণ"
+    advance();
+
+    if (!check(TokenType::LPAREN))
+    {
+        throw std::runtime_error(
+            "Expected '(' after while."
+        );
+    }
+
+    // Consume "("
+    advance();
+
+    // Parse condition
+    auto condition = parseCondition();
+
+    if (!check(TokenType::RPAREN))
+    {
+        throw std::runtime_error(
+            "Expected ')' after while condition."
+        );
+    }
+
+    // Consume ")"
+    advance();
+
+    if (!check(TokenType::LBRACE))
+    {
+        throw std::runtime_error(
+            "Expected '{' before while body."
+        );
+    }
+
+    // Consume "{"
+    advance();
+
+    // Create WhileNode
+    auto whileNode =
+        std::make_shared<WhileNode>(condition);
+
+    // Parse statements inside while body
+    while (!check(TokenType::RBRACE) &&
+           !isAtEnd())
+    {
+        auto statement = parseStatement();
+
+        if (statement)
+        {
+            whileNode->body.push_back(statement);
+        }
+    }
+
+    if (!check(TokenType::RBRACE))
+    {
+        throw std::runtime_error(
+            "Expected '}' after while body."
+        );
+    }
+
+    // Consume "}"
+    advance();
+
+    return whileNode;
 }

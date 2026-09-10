@@ -29,6 +29,7 @@ private:
     std::shared_ptr<Statement> parseDeclaration();
     std::shared_ptr<Statement> parseAssignment();
     std::shared_ptr<Statement> parseIfElse();
+    std::shared_ptr<Statement> parseWhile();
 
     std::shared_ptr<Expression> parseExpression();
     std::shared_ptr<Expression> parsePrimary();
