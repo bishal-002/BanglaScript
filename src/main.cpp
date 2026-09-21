@@ -11,6 +11,10 @@
 #include "semantic.h"
 #include "codegen.h"
 
+// ==========================================
+// Token Type to String
+// ==========================================
+
 std::string tokenTypeToString(TokenType type)
 {
     switch (type)
@@ -103,14 +107,22 @@ std::string tokenTypeToString(TokenType type)
     return "UNKNOWN";
 }
 
+// ==========================================
+// Print Expression
+// ==========================================
+
 void printExpression(
     const std::shared_ptr<Expression>& expression,
     int indent = 0)
 {
-    std::string spaces(indent, ' ');
+    std::string spaces(
+        indent,
+        ' ');
 
+    // Number
     auto number =
-        std::dynamic_pointer_cast<NumberNode>(
+        std::dynamic_pointer_cast<
+            NumberNode>(
             expression);
 
     if (number)
@@ -124,8 +136,27 @@ void printExpression(
         return;
     }
 
+    // String
+    auto string =
+        std::dynamic_pointer_cast<
+            StringNode>(
+            expression);
+
+    if (string)
+    {
+        std::cout
+            << spaces
+            << "StringNode: "
+            << string->value
+            << '\n';
+
+        return;
+    }
+
+    // Identifier
     auto identifier =
-        std::dynamic_pointer_cast<IdentifierNode>(
+        std::dynamic_pointer_cast<
+            IdentifierNode>(
             expression);
 
     if (identifier)
@@ -139,8 +170,10 @@ void printExpression(
         return;
     }
 
+    // Binary Expression
     auto binary =
-        std::dynamic_pointer_cast<BinaryExpressionNode>(
+        std::dynamic_pointer_cast<
+            BinaryExpressionNode>(
             expression);
 
     if (binary)
@@ -171,14 +204,25 @@ void printExpression(
     }
 }
 
+// ==========================================
+// Print Statement
+// ==========================================
+
 void printStatement(
     const std::shared_ptr<Statement>& statement,
     int indent = 2)
 {
-    std::string spaces(indent, ' ');
+    std::string spaces(
+        indent,
+        ' ');
+
+    // ==========================================
+    // Declaration
+    // ==========================================
 
     auto declaration =
-        std::dynamic_pointer_cast<DeclarationNode>(
+        std::dynamic_pointer_cast<
+            DeclarationNode>(
             statement);
 
     if (declaration)
@@ -212,8 +256,13 @@ void printStatement(
         return;
     }
 
+    // ==========================================
+    // Assignment
+    // ==========================================
+
     auto assignment =
-        std::dynamic_pointer_cast<AssignmentNode>(
+        std::dynamic_pointer_cast<
+            AssignmentNode>(
             statement);
 
     if (assignment)
@@ -241,8 +290,41 @@ void printStatement(
         return;
     }
 
+    // ==========================================
+    // Print
+    // ==========================================
+
+    auto print =
+        std::dynamic_pointer_cast<
+            PrintNode>(
+            statement);
+
+    if (print)
+    {
+        std::cout
+            << spaces
+            << "PrintNode"
+            << '\n';
+
+        std::cout
+            << spaces
+            << "  Value:"
+            << '\n';
+
+        printExpression(
+            print->value,
+            indent + 4);
+
+        return;
+    }
+
+    // ==========================================
+    // If Else
+    // ==========================================
+
     auto ifElse =
-        std::dynamic_pointer_cast<IfElseNode>(
+        std::dynamic_pointer_cast<
+            IfElseNode>(
             statement);
 
     if (ifElse)
@@ -293,8 +375,13 @@ void printStatement(
         return;
     }
 
+    // ==========================================
+    // While
+    // ==========================================
+
     auto whileNode =
-        std::dynamic_pointer_cast<WhileNode>(
+        std::dynamic_pointer_cast<
+            WhileNode>(
             statement);
 
     if (whileNode)
@@ -330,18 +417,23 @@ void printStatement(
     }
 }
 
+// ==========================================
+// Main
+// ==========================================
+
 int main()
 {
     std::setlocale(
         LC_ALL,
         "bn_BD.UTF-8");
 
+    // ==========================================
+    // BanglaScript Test Program
+    // ==========================================
+
     std::string source =
-        "ধরি সংখ্যা ক = ০;\n"
-        "যতক্ষণ (ক < ৫)\n"
-        "{\n"
-        "    ক = ক + ১;\n"
-        "}";
+        "ধরি লেখা বার্তা = \"হ্যালো বাংলাদেশ\";\n"
+        "দেখাও(বার্তা);";
 
     // ==========================================
     // 1. LEXICAL ANALYSIS
@@ -356,13 +448,15 @@ int main()
         << "========== TOKENS =========="
         << '\n';
 
-    for (const auto& token : tokens)
+    for (const auto& token :
+         tokens)
     {
         std::cout
             << "Line "
             << token.line
             << " | "
-            << tokenTypeToString(token.type)
+            << tokenTypeToString(
+                   token.type)
             << " | "
             << token.lexeme
             << '\n';
@@ -374,7 +468,8 @@ int main()
 
     Parser parser(tokens);
 
-    auto program = parser.parse();
+    auto program =
+        parser.parse();
 
     std::cout
         << "\n========== AST =========="
@@ -387,7 +482,8 @@ int main()
     for (const auto& statement :
          program->statements)
     {
-        printStatement(statement);
+        printStatement(
+            statement);
     }
 
     // ==========================================
@@ -401,7 +497,8 @@ int main()
     SemanticAnalyzer semanticAnalyzer;
 
     bool semanticResult =
-        semanticAnalyzer.analyze(program);
+        semanticAnalyzer.analyze(
+            program);
 
     if (!semanticResult)
     {
@@ -427,13 +524,14 @@ int main()
     CodeGenerator codeGenerator;
 
     std::string generatedCode =
-        codeGenerator.generate(program);
+        codeGenerator.generate(
+            program);
 
     std::cout
         << generatedCode;
 
     // ==========================================
-    // 5. WRITE GENERATED CODE TO output.py
+    // 5. WRITE TO output.py
     // ==========================================
 
     std::ofstream outputFile(

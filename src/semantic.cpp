@@ -1,260 +1,559 @@
-#include "semantic.h"
-#include "error.h"
-
 #include <iostream>
+#include <string>
+#include <vector>
+#include <memory>
+#include <fstream>
+#include <clocale>
 
-SemanticAnalyzer::SemanticAnalyzer()
-{
-}
+#include "lexer.h"
+#include "parser.h"
+#include "ast.h"
+#include "semantic.h"
+#include "codegen.h"
 
-bool SemanticAnalyzer::analyzeExpression(
-    const std::shared_ptr<Expression>& expression)
+// ==========================================
+// Token Type to String
+// ==========================================
+
+std::string tokenTypeToString(TokenType type)
 {
-    if (!expression)
+    switch (type)
     {
-        ErrorReporter::report(
-            ErrorType::SEMANTIC,
-            "Empty expression.",
-            0
-        );
+    case TokenType::KEYWORD_DHORI:
+        return "KEYWORD_DHORI";
 
-        return false;
+    case TokenType::KEYWORD_JODI:
+        return "KEYWORD_JODI";
+
+    case TokenType::KEYWORD_NAHOLE:
+        return "KEYWORD_NAHOLE";
+
+    case TokenType::KEYWORD_JOTOKKHON:
+        return "KEYWORD_JOTOKKHON";
+
+    case TokenType::KEYWORD_DEKHAO:
+        return "KEYWORD_DEKHAO";
+
+    case TokenType::TYPE_SONGKHA:
+        return "TYPE_SONGKHA";
+
+    case TokenType::TYPE_LEKHA:
+        return "TYPE_LEKHA";
+
+    case TokenType::IDENTIFIER:
+        return "IDENTIFIER";
+
+    case TokenType::NUMBER:
+        return "NUMBER";
+
+    case TokenType::STRING_LITERAL:
+        return "STRING_LITERAL";
+
+    case TokenType::PLUS:
+        return "PLUS";
+
+    case TokenType::MINUS:
+        return "MINUS";
+
+    case TokenType::STAR:
+        return "STAR";
+
+    case TokenType::SLASH:
+        return "SLASH";
+
+    case TokenType::ASSIGN:
+        return "ASSIGN";
+
+    case TokenType::GT:
+        return "GT";
+
+    case TokenType::LT:
+        return "LT";
+
+    case TokenType::GTE:
+        return "GTE";
+
+    case TokenType::LTE:
+        return "LTE";
+
+    case TokenType::EQ:
+        return "EQ";
+
+    case TokenType::NEQ:
+        return "NEQ";
+
+    case TokenType::SEMICOLON:
+        return "SEMICOLON";
+
+    case TokenType::LPAREN:
+        return "LPAREN";
+
+    case TokenType::RPAREN:
+        return "RPAREN";
+
+    case TokenType::LBRACE:
+        return "LBRACE";
+
+    case TokenType::RBRACE:
+        return "RBRACE";
+
+    case TokenType::END_OF_FILE:
+        return "END_OF_FILE";
+
+    case TokenType::UNKNOWN:
+        return "UNKNOWN";
     }
 
+    return "UNKNOWN";
+}
+
+// ==========================================
+// Print Expression
+// ==========================================
+
+void printExpression(
+    const std::shared_ptr<Expression>& expression,
+    int indent = 0)
+{
+    std::string spaces(
+        indent,
+        ' ');
+
+    // Number
     auto number =
-        std::dynamic_pointer_cast<NumberNode>(
+        std::dynamic_pointer_cast<
+            NumberNode>(
             expression);
 
     if (number)
     {
-        return true;
+        std::cout
+            << spaces
+            << "NumberNode: "
+            << number->value
+            << '\n';
+
+        return;
     }
 
+    // String
+    auto string =
+        std::dynamic_pointer_cast<
+            StringNode>(
+            expression);
+
+    if (string)
+    {
+        std::cout
+            << spaces
+            << "StringNode: "
+            << string->value
+            << '\n';
+
+        return;
+    }
+
+    // Identifier
     auto identifier =
-        std::dynamic_pointer_cast<IdentifierNode>(
+        std::dynamic_pointer_cast<
+            IdentifierNode>(
             expression);
 
     if (identifier)
     {
-        if (!symbolTable.exists(identifier->name))
-        {
-            ErrorReporter::report(
-                ErrorType::SEMANTIC,
-                "Variable '" +
-                identifier->name +
-                "' is not declared.",
-                0
-            );
+        std::cout
+            << spaces
+            << "IdentifierNode: "
+            << identifier->name
+            << '\n';
 
-            return false;
-        }
-
-        return true;
+        return;
     }
 
+    // Binary Expression
     auto binary =
-        std::dynamic_pointer_cast<BinaryExpressionNode>(
+        std::dynamic_pointer_cast<
+            BinaryExpressionNode>(
             expression);
 
     if (binary)
     {
-        bool leftValid =
-            analyzeExpression(binary->left);
+        std::cout
+            << spaces
+            << "BinaryExpressionNode: "
+            << binary->op
+            << '\n';
 
-        bool rightValid =
-            analyzeExpression(binary->right);
+        std::cout
+            << spaces
+            << "  Left:"
+            << '\n';
 
-        return leftValid && rightValid;
+        printExpression(
+            binary->left,
+            indent + 4);
+
+        std::cout
+            << spaces
+            << "  Right:"
+            << '\n';
+
+        printExpression(
+            binary->right,
+            indent + 4);
     }
-
-    ErrorReporter::report(
-        ErrorType::SEMANTIC,
-        "Unknown expression.",
-        0
-    );
-
-    return false;
 }
 
-bool SemanticAnalyzer::analyzeStatement(
-    const std::shared_ptr<Statement>& statement)
+// ==========================================
+// Print Statement
+// ==========================================
+
+void printStatement(
+    const std::shared_ptr<Statement>& statement,
+    int indent = 2)
 {
-    if (!statement)
-    {
-        ErrorReporter::report(
-            ErrorType::SEMANTIC,
-            "Empty statement.",
-            0
-        );
+    std::string spaces(
+        indent,
+        ' ');
 
-        return false;
-    }
-
-    // =========================
+    // ==========================================
     // Declaration
-    // =========================
+    // ==========================================
 
     auto declaration =
-        std::dynamic_pointer_cast<DeclarationNode>(
+        std::dynamic_pointer_cast<
+            DeclarationNode>(
             statement);
 
     if (declaration)
     {
-        if (!analyzeExpression(
-                declaration->value))
-        {
-            return false;
-        }
+        std::cout
+            << spaces
+            << "DeclarationNode"
+            << '\n';
 
-        if (!symbolTable.declare(
-                declaration->variableName,
-                declaration->variableType))
-        {
-            ErrorReporter::report(
-                ErrorType::SEMANTIC,
-                "Variable '" +
-                declaration->variableName +
-                "' is already declared.",
-                0
-            );
+        std::cout
+            << spaces
+            << "  Type: "
+            << declaration->variableType
+            << '\n';
 
-            return false;
-        }
+        std::cout
+            << spaces
+            << "  Name: "
+            << declaration->variableName
+            << '\n';
 
-        return true;
+        std::cout
+            << spaces
+            << "  Value:"
+            << '\n';
+
+        printExpression(
+            declaration->value,
+            indent + 4);
+
+        return;
     }
 
-    // =========================
+    // ==========================================
     // Assignment
-    // =========================
+    // ==========================================
 
     auto assignment =
-        std::dynamic_pointer_cast<AssignmentNode>(
+        std::dynamic_pointer_cast<
+            AssignmentNode>(
             statement);
 
     if (assignment)
     {
-        if (!symbolTable.exists(
-                assignment->variableName))
-        {
-            ErrorReporter::report(
-                ErrorType::SEMANTIC,
-                "Variable '" +
-                assignment->variableName +
-                "' is not declared.",
-                0
-            );
+        std::cout
+            << spaces
+            << "AssignmentNode"
+            << '\n';
 
-            return false;
-        }
+        std::cout
+            << spaces
+            << "  Name: "
+            << assignment->variableName
+            << '\n';
 
-        return analyzeExpression(
-            assignment->value);
+        std::cout
+            << spaces
+            << "  Value:"
+            << '\n';
+
+        printExpression(
+            assignment->value,
+            indent + 4);
+
+        return;
     }
 
-    // =========================
+    // ==========================================
+    // Print
+    // ==========================================
+
+    auto print =
+        std::dynamic_pointer_cast<
+            PrintNode>(
+            statement);
+
+    if (print)
+    {
+        std::cout
+            << spaces
+            << "PrintNode"
+            << '\n';
+
+        std::cout
+            << spaces
+            << "  Value:"
+            << '\n';
+
+        printExpression(
+            print->value,
+            indent + 4);
+
+        return;
+    }
+
+    // ==========================================
     // If Else
-    // =========================
+    // ==========================================
 
     auto ifElse =
-        std::dynamic_pointer_cast<IfElseNode>(
+        std::dynamic_pointer_cast<
+            IfElseNode>(
             statement);
 
     if (ifElse)
     {
-        if (!analyzeExpression(
-                ifElse->condition))
-        {
-            return false;
-        }
+        std::cout
+            << spaces
+            << "IfElseNode"
+            << '\n';
+
+        std::cout
+            << spaces
+            << "  Condition:"
+            << '\n';
+
+        printExpression(
+            ifElse->condition,
+            indent + 4);
+
+        std::cout
+            << spaces
+            << "  If Body:"
+            << '\n';
 
         for (const auto& bodyStatement :
              ifElse->ifBody)
         {
-            if (!analyzeStatement(
-                    bodyStatement))
-            {
-                return false;
-            }
+            printStatement(
+                bodyStatement,
+                indent + 4);
         }
 
-        for (const auto& bodyStatement :
-             ifElse->elseBody)
+        if (!ifElse->elseBody.empty())
         {
-            if (!analyzeStatement(
-                    bodyStatement))
+            std::cout
+                << spaces
+                << "  Else Body:"
+                << '\n';
+
+            for (const auto& bodyStatement :
+                 ifElse->elseBody)
             {
-                return false;
+                printStatement(
+                    bodyStatement,
+                    indent + 4);
             }
         }
 
-        return true;
+        return;
     }
 
-    // =========================
-    // While Loop
-    // =========================
+    // ==========================================
+    // While
+    // ==========================================
 
     auto whileNode =
-        std::dynamic_pointer_cast<WhileNode>(
+        std::dynamic_pointer_cast<
+            WhileNode>(
             statement);
 
     if (whileNode)
     {
-        if (!analyzeExpression(
-                whileNode->condition))
-        {
-            return false;
-        }
+        std::cout
+            << spaces
+            << "WhileNode"
+            << '\n';
+
+        std::cout
+            << spaces
+            << "  Condition:"
+            << '\n';
+
+        printExpression(
+            whileNode->condition,
+            indent + 4);
+
+        std::cout
+            << spaces
+            << "  Body:"
+            << '\n';
 
         for (const auto& bodyStatement :
              whileNode->body)
         {
-            if (!analyzeStatement(
-                    bodyStatement))
-            {
-                return false;
-            }
+            printStatement(
+                bodyStatement,
+                indent + 4);
         }
 
-        return true;
+        return;
     }
-
-    ErrorReporter::report(
-        ErrorType::SEMANTIC,
-        "Unknown statement.",
-        0
-    );
-
-    return false;
 }
 
-bool SemanticAnalyzer::analyze(
-    const std::shared_ptr<ProgramNode>& program)
-{
-    if (!program)
-    {
-        ErrorReporter::report(
-            ErrorType::SEMANTIC,
-            "No program found.",
-            0
-        );
+// ==========================================
+// Main
+// ==========================================
 
-        return false;
+int main()
+{
+    std::setlocale(
+        LC_ALL,
+        "bn_BD.UTF-8");
+
+    // ==========================================
+    // BanglaScript Test Program
+    // ==========================================
+
+    std::string source =
+        "ধরি লেখা বার্তা = \"হ্যালো বাংলাদেশ\";\n"
+        "দেখাও(বার্তা);";
+
+    // ==========================================
+    // 1. LEXICAL ANALYSIS
+    // ==========================================
+
+    Lexer lexer(source);
+
+    std::vector<Token> tokens =
+        lexer.tokenize();
+
+    std::cout
+        << "========== TOKENS =========="
+        << '\n';
+
+    for (const auto& token :
+         tokens)
+    {
+        std::cout
+            << "Line "
+            << token.line
+            << " | "
+            << tokenTypeToString(
+                   token.type)
+            << " | "
+            << token.lexeme
+            << '\n';
     }
+
+    // ==========================================
+    // 2. PARSING
+    // ==========================================
+
+    Parser parser(tokens);
+
+    auto program =
+        parser.parse();
+
+    std::cout
+        << "\n========== AST =========="
+        << '\n';
+
+    std::cout
+        << "ProgramNode"
+        << '\n';
 
     for (const auto& statement :
          program->statements)
     {
-        if (!analyzeStatement(statement))
-        {
-            return false;
-        }
+        printStatement(
+            statement);
+    }
+
+    // ==========================================
+    // 3. SEMANTIC ANALYSIS
+    // ==========================================
+
+    std::cout
+        << "\n========== SEMANTIC ANALYSIS =========="
+        << '\n';
+
+    SemanticAnalyzer semanticAnalyzer;
+
+    bool semanticResult =
+        semanticAnalyzer.analyze(
+            program);
+
+    if (!semanticResult)
+    {
+        std::cout
+            << "Program failed semantic analysis."
+            << '\n';
+
+        return 1;
     }
 
     std::cout
-        << "Semantic Analysis Successful"
+        << "Program passed semantic analysis."
         << '\n';
 
-    return true;
+    // ==========================================
+    // 4. CODE GENERATION
+    // ==========================================
+
+    std::cout
+        << "\n========== CODE GENERATION =========="
+        << '\n';
+
+    CodeGenerator codeGenerator;
+
+    std::string generatedCode =
+        codeGenerator.generate(
+            program);
+
+    std::cout
+        << generatedCode;
+
+    // ==========================================
+    // 5. WRITE TO output.py
+    // ==========================================
+
+    std::ofstream outputFile(
+        "output.py");
+
+    if (!outputFile.is_open())
+    {
+        std::cout
+            << "\nError: Could not create output.py"
+            << '\n';
+
+        return 1;
+    }
+
+    outputFile
+        << generatedCode;
+
+    outputFile.close();
+
+    std::cout
+        << "\nGenerated Python code saved to output.py"
+        << '\n';
+
+    return 0;
 }
