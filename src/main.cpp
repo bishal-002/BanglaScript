@@ -21,14 +21,26 @@ std::string tokenTypeToString(TokenType type)
     case TokenType::KEYWORD_NAHOLE:
         return "KEYWORD_NAHOLE";
 
+    case TokenType::KEYWORD_JOTOKKHON:
+        return "KEYWORD_JOTOKKHON";
+
+    case TokenType::KEYWORD_DEKHAO:
+        return "KEYWORD_DEKHAO";
+
     case TokenType::TYPE_SONGKHA:
         return "TYPE_SONGKHA";
+
+    case TokenType::TYPE_LEKHA:
+        return "TYPE_LEKHA";
 
     case TokenType::IDENTIFIER:
         return "IDENTIFIER";
 
     case TokenType::NUMBER:
         return "NUMBER";
+
+    case TokenType::STRING_LITERAL:
+        return "STRING_LITERAL";
 
     case TokenType::PLUS:
         return "PLUS";
