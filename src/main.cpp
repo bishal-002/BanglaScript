@@ -2,11 +2,14 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
+#include <clocale>
 
 #include "lexer.h"
 #include "parser.h"
 #include "ast.h"
 #include "semantic.h"
+#include "codegen.h"
 
 std::string tokenTypeToString(TokenType type)
 {
@@ -101,18 +104,14 @@ std::string tokenTypeToString(TokenType type)
 }
 
 void printExpression(
-    const std::shared_ptr<Expression> &expression,
+    const std::shared_ptr<Expression>& expression,
     int indent = 0)
 {
     std::string spaces(indent, ' ');
 
-    if (!expression)
-    {
-        std::cout << spaces << "NULL Expression\n";
-        return;
-    }
     auto number =
-        std::dynamic_pointer_cast<NumberNode>(expression);
+        std::dynamic_pointer_cast<NumberNode>(
+            expression);
 
     if (number)
     {
@@ -124,8 +123,10 @@ void printExpression(
 
         return;
     }
+
     auto identifier =
-        std::dynamic_pointer_cast<IdentifierNode>(expression);
+        std::dynamic_pointer_cast<IdentifierNode>(
+            expression);
 
     if (identifier)
     {
@@ -137,6 +138,7 @@ void printExpression(
 
         return;
     }
+
     auto binary =
         std::dynamic_pointer_cast<BinaryExpressionNode>(
             expression);
@@ -151,7 +153,8 @@ void printExpression(
 
         std::cout
             << spaces
-            << "  Left:\n";
+            << "  Left:"
+            << '\n';
 
         printExpression(
             binary->left,
@@ -159,34 +162,20 @@ void printExpression(
 
         std::cout
             << spaces
-            << "  Right:\n";
+            << "  Right:"
+            << '\n';
 
         printExpression(
             binary->right,
             indent + 4);
-
-        return;
     }
-
-    std::cout
-        << spaces
-        << "Unknown Expression\n";
 }
 
 void printStatement(
-    const std::shared_ptr<Statement> &statement,
+    const std::shared_ptr<Statement>& statement,
     int indent = 2)
 {
     std::string spaces(indent, ' ');
-
-    if (!statement)
-    {
-        std::cout
-            << spaces
-            << "NULL Statement\n";
-
-        return;
-    }
 
     auto declaration =
         std::dynamic_pointer_cast<DeclarationNode>(
@@ -196,7 +185,8 @@ void printStatement(
     {
         std::cout
             << spaces
-            << "DeclarationNode\n";
+            << "DeclarationNode"
+            << '\n';
 
         std::cout
             << spaces
@@ -212,7 +202,8 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  Value:\n";
+            << "  Value:"
+            << '\n';
 
         printExpression(
             declaration->value,
@@ -229,7 +220,8 @@ void printStatement(
     {
         std::cout
             << spaces
-            << "AssignmentNode\n";
+            << "AssignmentNode"
+            << '\n';
 
         std::cout
             << spaces
@@ -239,7 +231,8 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  Value:\n";
+            << "  Value:"
+            << '\n';
 
         printExpression(
             assignment->value,
@@ -256,11 +249,13 @@ void printStatement(
     {
         std::cout
             << spaces
-            << "IfElseNode\n";
+            << "IfElseNode"
+            << '\n';
 
         std::cout
             << spaces
-            << "  Condition:\n";
+            << "  Condition:"
+            << '\n';
 
         printExpression(
             ifElse->condition,
@@ -268,9 +263,10 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  IF BODY:\n";
+            << "  If Body:"
+            << '\n';
 
-        for (const auto &bodyStatement :
+        for (const auto& bodyStatement :
              ifElse->ifBody)
         {
             printStatement(
@@ -278,16 +274,20 @@ void printStatement(
                 indent + 4);
         }
 
-        std::cout
-            << spaces
-            << "  ELSE BODY:\n";
-
-        for (const auto &bodyStatement :
-             ifElse->elseBody)
+        if (!ifElse->elseBody.empty())
         {
-            printStatement(
-                bodyStatement,
-                indent + 4);
+            std::cout
+                << spaces
+                << "  Else Body:"
+                << '\n';
+
+            for (const auto& bodyStatement :
+                 ifElse->elseBody)
+            {
+                printStatement(
+                    bodyStatement,
+                    indent + 4);
+            }
         }
 
         return;
@@ -301,11 +301,13 @@ void printStatement(
     {
         std::cout
             << spaces
-            << "WhileNode\n";
+            << "WhileNode"
+            << '\n';
 
         std::cout
             << spaces
-            << "  Condition:\n";
+            << "  Condition:"
+            << '\n';
 
         printExpression(
             whileNode->condition,
@@ -313,9 +315,10 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  BODY:\n";
+            << "  Body:"
+            << '\n';
 
-        for (const auto &bodyStatement :
+        for (const auto& bodyStatement :
              whileNode->body)
         {
             printStatement(
@@ -325,22 +328,24 @@ void printStatement(
 
         return;
     }
-
-    std::cout
-        << spaces
-        << "Unknown Statement\n";
 }
 
 int main()
 {
-    std::setlocale(LC_ALL, "bn_BD.UTF-8");
+    std::setlocale(
+        LC_ALL,
+        "bn_BD.UTF-8");
 
     std::string source =
-    "ধরি সংখ্যা ক = ০;\n"
-    "যতক্ষণ (ক < ৫)\n"
-    "{\n"
-    "    ক = ক + ১;\n"
-    "}";
+        "ধরি সংখ্যা ক = ০;\n"
+        "যতক্ষণ (ক < ৫)\n"
+        "{\n"
+        "    ক = ক + ১;\n"
+        "}";
+
+    // ==========================================
+    // 1. LEXICAL ANALYSIS
+    // ==========================================
 
     Lexer lexer(source);
 
@@ -348,9 +353,10 @@ int main()
         lexer.tokenize();
 
     std::cout
-        << "========== TOKENS ==========\n";
+        << "========== TOKENS =========="
+        << '\n';
 
-    for (const Token &token : tokens)
+    for (const auto& token : tokens)
     {
         std::cout
             << "Line "
@@ -362,53 +368,94 @@ int main()
             << '\n';
     }
 
-    std::cout
-        << "\n========== PARSER ==========\n";
+    // ==========================================
+    // 2. PARSING
+    // ==========================================
 
     Parser parser(tokens);
 
     auto program = parser.parse();
 
     std::cout
-        << "\n========== AST ==========\n";
-
-    if (program)
-    {
-        std::cout
-            << "ProgramNode\n";
-
-        for (const auto &statement :
-             program->statements)
-        {
-            printStatement(statement);
-        }
-    }
-    else
-    {
-        std::cout
-            << "AST construction failed.\n";
-    }
+        << "\n========== AST =========="
+        << '\n';
 
     std::cout
-        << "\n========== SEMANTIC ANALYSIS ==========\n";
+        << "ProgramNode"
+        << '\n';
+
+    for (const auto& statement :
+         program->statements)
+    {
+        printStatement(statement);
+    }
+
+    // ==========================================
+    // 3. SEMANTIC ANALYSIS
+    // ==========================================
+
+    std::cout
+        << "\n========== SEMANTIC ANALYSIS =========="
+        << '\n';
 
     SemanticAnalyzer semanticAnalyzer;
 
     bool semanticResult =
         semanticAnalyzer.analyze(program);
 
-    if (semanticResult)
-    {
-        std::cout
-            << "Program passed semantic analysis."
-            << '\n';
-    }
-    else
+    if (!semanticResult)
     {
         std::cout
             << "Program failed semantic analysis."
             << '\n';
+
+        return 1;
     }
+
+    std::cout
+        << "Program passed semantic analysis."
+        << '\n';
+
+    // ==========================================
+    // 4. CODE GENERATION
+    // ==========================================
+
+    std::cout
+        << "\n========== CODE GENERATION =========="
+        << '\n';
+
+    CodeGenerator codeGenerator;
+
+    std::string generatedCode =
+        codeGenerator.generate(program);
+
+    std::cout
+        << generatedCode;
+
+    // ==========================================
+    // 5. WRITE GENERATED CODE TO output.py
+    // ==========================================
+
+    std::ofstream outputFile(
+        "output.py");
+
+    if (!outputFile.is_open())
+    {
+        std::cout
+            << "\nError: Could not create output.py"
+            << '\n';
+
+        return 1;
+    }
+
+    outputFile
+        << generatedCode;
+
+    outputFile.close();
+
+    std::cout
+        << "\nGenerated Python code saved to output.py"
+        << '\n';
 
     return 0;
 }
