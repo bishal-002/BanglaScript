@@ -119,10 +119,8 @@ void printExpression(
         indent,
         ' ');
 
-    // Number
     auto number =
-        std::dynamic_pointer_cast<
-            NumberNode>(
+        std::dynamic_pointer_cast<NumberNode>(
             expression);
 
     if (number)
@@ -136,10 +134,8 @@ void printExpression(
         return;
     }
 
-    // String
     auto string =
-        std::dynamic_pointer_cast<
-            StringNode>(
+        std::dynamic_pointer_cast<StringNode>(
             expression);
 
     if (string)
@@ -153,10 +149,8 @@ void printExpression(
         return;
     }
 
-    // Identifier
     auto identifier =
-        std::dynamic_pointer_cast<
-            IdentifierNode>(
+        std::dynamic_pointer_cast<IdentifierNode>(
             expression);
 
     if (identifier)
@@ -170,7 +164,6 @@ void printExpression(
         return;
     }
 
-    // Binary Expression
     auto binary =
         std::dynamic_pointer_cast<
             BinaryExpressionNode>(
@@ -216,10 +209,7 @@ void printStatement(
         indent,
         ' ');
 
-    // ==========================================
     // Declaration
-    // ==========================================
-
     auto declaration =
         std::dynamic_pointer_cast<
             DeclarationNode>(
@@ -256,10 +246,7 @@ void printStatement(
         return;
     }
 
-    // ==========================================
     // Assignment
-    // ==========================================
-
     auto assignment =
         std::dynamic_pointer_cast<
             AssignmentNode>(
@@ -290,10 +277,7 @@ void printStatement(
         return;
     }
 
-    // ==========================================
     // Print
-    // ==========================================
-
     auto print =
         std::dynamic_pointer_cast<
             PrintNode>(
@@ -318,10 +302,7 @@ void printStatement(
         return;
     }
 
-    // ==========================================
     // If Else
-    // ==========================================
-
     auto ifElse =
         std::dynamic_pointer_cast<
             IfElseNode>(
@@ -375,10 +356,7 @@ void printStatement(
         return;
     }
 
-    // ==========================================
     // While
-    // ==========================================
-
     auto whileNode =
         std::dynamic_pointer_cast<
             WhileNode>(
@@ -421,19 +399,53 @@ void printStatement(
 // Main
 // ==========================================
 
-int main()
+int main(int argc, char* argv[])
 {
     std::setlocale(
         LC_ALL,
         "bn_BD.UTF-8");
 
     // ==========================================
-    // BanglaScript Test Program
+    // Check Input File
     // ==========================================
 
-    std::string source =
-        "ধরি লেখা বার্তা = \"হ্যালো বাংলাদেশ\";\n"
-        "দেখাও(বার্তা);";
+    if (argc < 2)
+    {
+        std::cout
+            << "Usage: BanglaScript.exe <file.bscript>"
+            << '\n';
+
+        return 1;
+    }
+
+    // ==========================================
+    // Read BanglaScript File
+    // ==========================================
+
+    std::ifstream inputFile(
+        argv[1]);
+
+    if (!inputFile.is_open())
+    {
+        std::cout
+            << "Error: Could not open file."
+            << '\n';
+
+        return 1;
+    }
+
+    std::string source(
+        (std::istreambuf_iterator<char>(
+            inputFile)),
+        std::istreambuf_iterator<char>()
+    );
+
+    inputFile.close();
+
+    std::cout
+        << "Compiling: "
+        << argv[1]
+        << '\n';
 
     // ==========================================
     // 1. LEXICAL ANALYSIS
@@ -445,7 +457,7 @@ int main()
         lexer.tokenize();
 
     std::cout
-        << "========== TOKENS =========="
+        << "\n========== TOKENS =========="
         << '\n';
 
     for (const auto& token :
@@ -482,8 +494,7 @@ int main()
     for (const auto& statement :
          program->statements)
     {
-        printStatement(
-            statement);
+        printStatement(statement);
     }
 
     // ==========================================
@@ -531,7 +542,7 @@ int main()
         << generatedCode;
 
     // ==========================================
-    // 5. WRITE TO output.py
+    // 5. WRITE GENERATED CODE TO output.py
     // ==========================================
 
     std::ofstream outputFile(
