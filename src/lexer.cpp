@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "error.h"
 
 #include <cctype>
 #include <iostream>
@@ -126,9 +127,15 @@ std::vector<Token> Lexer::tokenize()
         if (std::isdigit(
                 static_cast<unsigned char>(current)))
         {
-            throw std::runtime_error(
+            std::string message =
                 "English numerals are not allowed. "
-                "Use Bangla numerals (০-৯).");
+                "Use Bangla numerals (০-৯).";
+            ErrorReporter::report(
+                ErrorType::LEXICAL,
+                message,
+                line);
+
+            throw std::runtime_error(message);
         }
 
         // Identifier / keyword
@@ -154,19 +161,18 @@ std::vector<Token> Lexer::tokenize()
             }
 
             static const std::unordered_map<std::string, TokenType> keywords =
-{
-    {"ধরি", TokenType::KEYWORD_DHORI},
+                {
+                    {"ধরি", TokenType::KEYWORD_DHORI},
 
-    {"যদি", TokenType::KEYWORD_JODI},
-    {"নাহলে", TokenType::KEYWORD_NAHOLE},
+                    {"যদি", TokenType::KEYWORD_JODI},
+                    {"নাহলে", TokenType::KEYWORD_NAHOLE},
 
-    {"যতক্ষণ", TokenType::KEYWORD_JOTOKKHON},
+                    {"যতক্ষণ", TokenType::KEYWORD_JOTOKKHON},
 
-    {"দেখাও", TokenType::KEYWORD_DEKHAO},
+                    {"দেখাও", TokenType::KEYWORD_DEKHAO},
 
-    {"সংখ্যা", TokenType::TYPE_SONGKHA},
-    {"লেখা", TokenType::TYPE_LEKHA}
-};
+                    {"সংখ্যা", TokenType::TYPE_SONGKHA},
+                    {"লেখা", TokenType::TYPE_LEKHA}};
 
             auto it = keywords.find(value);
 
