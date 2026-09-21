@@ -115,4 +115,18 @@ public:
     std::vector<std::shared_ptr<Statement>> elseBody;
 };
 
+// While Loop Node
+class WhileNode : public Statement
+{
+public:
+    std::shared_ptr<Expression> condition;
+
+    std::vector<std::shared_ptr<Statement>> body;
+
+    WhileNode(std::shared_ptr<Expression> condition)
+        : condition(condition)
+    {
+    }
+};
+
 #endif
