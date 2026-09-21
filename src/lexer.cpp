@@ -189,11 +189,55 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
-        // Two-character operators
-        if (position + 1 < source.length())
+       // String literal
+if (current == '"')
+{
+    position++;
+
+    std::string value;
+
+    while (position < source.length() &&
+           source[position] != '"')
+    {
+        if (source[position] == '\n')
         {
-            std::string twoChars =
-                source.substr(position, 2);
+            std::string message =
+                "String literal cannot continue to a new line.";
+
+            ErrorReporter::report(
+                ErrorType::LEXICAL,
+                message,
+                line);
+
+            throw std::runtime_error(message);
+        }
+
+        value += source[position];
+        position++;
+    }
+
+    if (position >= source.length())
+    {
+        std::string message =
+            "Unterminated string literal.";
+
+        ErrorReporter::report(
+            ErrorType::LEXICAL,
+            message,
+            line);
+
+        throw std::runtime_error(message);
+    }
+
+    position++;
+
+    tokens.emplace_back(
+        TokenType::STRING_LITERAL,
+        value,
+        line);
+
+    continue;
+}
 
             if (twoChars == ">=")
             {
