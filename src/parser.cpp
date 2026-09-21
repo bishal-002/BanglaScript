@@ -1,4 +1,5 @@
 #include "parser.h"
+#include "error.h"
 
 #include <iostream>
 #include <stdexcept>
@@ -57,10 +58,11 @@ std::shared_ptr<ProgramNode> Parser::parse()
         }
         catch (const std::runtime_error& error)
         {
-            std::cout
-                << "Parser Error: "
-                << error.what()
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::PARSER,
+                error.what(),
+                peek().line
+            );
 
             if (!isAtEnd())
             {
