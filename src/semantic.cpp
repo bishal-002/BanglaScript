@@ -1,4 +1,5 @@
 #include "semantic.h"
+#include "error.h"
 
 #include <iostream>
 
@@ -11,9 +12,11 @@ bool SemanticAnalyzer::analyzeExpression(
 {
     if (!expression)
     {
-        std::cout
-            << "Semantic Error: Empty expression."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "Empty expression.",
+            0
+        );
 
         return false;
     }
@@ -35,11 +38,13 @@ bool SemanticAnalyzer::analyzeExpression(
     {
         if (!symbolTable.exists(identifier->name))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << identifier->name
-                << "' is not declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                identifier->name +
+                "' is not declared.",
+                0
+            );
 
             return false;
         }
@@ -62,9 +67,11 @@ bool SemanticAnalyzer::analyzeExpression(
         return leftValid && rightValid;
     }
 
-    std::cout
-        << "Semantic Error: Unknown expression."
-        << '\n';
+    ErrorReporter::report(
+        ErrorType::SEMANTIC,
+        "Unknown expression.",
+        0
+    );
 
     return false;
 }
@@ -74,9 +81,11 @@ bool SemanticAnalyzer::analyzeStatement(
 {
     if (!statement)
     {
-        std::cout
-            << "Semantic Error: Empty statement."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "Empty statement.",
+            0
+        );
 
         return false;
     }
@@ -101,11 +110,13 @@ bool SemanticAnalyzer::analyzeStatement(
                 declaration->variableName,
                 declaration->variableType))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << declaration->variableName
-                << "' is already declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                declaration->variableName +
+                "' is already declared.",
+                0
+            );
 
             return false;
         }
@@ -126,11 +137,13 @@ bool SemanticAnalyzer::analyzeStatement(
         if (!symbolTable.exists(
                 assignment->variableName))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << assignment->variableName
-                << "' is not declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                assignment->variableName +
+                "' is not declared.",
+                0
+            );
 
             return false;
         }
@@ -207,9 +220,11 @@ bool SemanticAnalyzer::analyzeStatement(
         return true;
     }
 
-    std::cout
-        << "Semantic Error: Unknown statement."
-        << '\n';
+    ErrorReporter::report(
+        ErrorType::SEMANTIC,
+        "Unknown statement.",
+        0
+    );
 
     return false;
 }
@@ -219,9 +234,11 @@ bool SemanticAnalyzer::analyze(
 {
     if (!program)
     {
-        std::cout
-            << "Semantic Error: No program found."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "No program found.",
+            0
+        );
 
         return false;
     }
