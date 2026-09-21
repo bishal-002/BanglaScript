@@ -2,7 +2,9 @@
 
 #include <iostream>
 
-SemanticAnalyzer::SemanticAnalyzer(){}
+SemanticAnalyzer::SemanticAnalyzer()
+{
+}
 
 bool SemanticAnalyzer::analyzeExpression(
     const std::shared_ptr<Expression>& expression)
@@ -18,8 +20,7 @@ bool SemanticAnalyzer::analyzeExpression(
 
     auto number =
         std::dynamic_pointer_cast<NumberNode>(
-            expression
-        );
+            expression);
 
     if (number)
     {
@@ -28,8 +29,7 @@ bool SemanticAnalyzer::analyzeExpression(
 
     auto identifier =
         std::dynamic_pointer_cast<IdentifierNode>(
-            expression
-        );
+            expression);
 
     if (identifier)
     {
@@ -49,8 +49,7 @@ bool SemanticAnalyzer::analyzeExpression(
 
     auto binary =
         std::dynamic_pointer_cast<BinaryExpressionNode>(
-            expression
-        );
+            expression);
 
     if (binary)
     {
@@ -82,10 +81,13 @@ bool SemanticAnalyzer::analyzeStatement(
         return false;
     }
 
+    // =========================
+    // Declaration
+    // =========================
+
     auto declaration =
         std::dynamic_pointer_cast<DeclarationNode>(
-            statement
-        );
+            statement);
 
     if (declaration)
     {
@@ -111,10 +113,13 @@ bool SemanticAnalyzer::analyzeStatement(
         return true;
     }
 
+    // =========================
+    // Assignment
+    // =========================
+
     auto assignment =
         std::dynamic_pointer_cast<AssignmentNode>(
-            statement
-        );
+            statement);
 
     if (assignment)
     {
@@ -129,15 +134,18 @@ bool SemanticAnalyzer::analyzeStatement(
 
             return false;
         }
+
         return analyzeExpression(
-            assignment->value
-        );
+            assignment->value);
     }
+
+    // =========================
+    // If Else
+    // =========================
 
     auto ifElse =
         std::dynamic_pointer_cast<IfElseNode>(
-            statement
-        );
+            statement);
 
     if (ifElse)
     {
@@ -159,6 +167,35 @@ bool SemanticAnalyzer::analyzeStatement(
 
         for (const auto& bodyStatement :
              ifElse->elseBody)
+        {
+            if (!analyzeStatement(
+                    bodyStatement))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    // =========================
+    // While Loop
+    // =========================
+
+    auto whileNode =
+        std::dynamic_pointer_cast<WhileNode>(
+            statement);
+
+    if (whileNode)
+    {
+        if (!analyzeExpression(
+                whileNode->condition))
+        {
+            return false;
+        }
+
+        for (const auto& bodyStatement :
+             whileNode->body)
         {
             if (!analyzeStatement(
                     bodyStatement))
