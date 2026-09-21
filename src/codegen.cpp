@@ -2,6 +2,10 @@
 
 #include <sstream>
 
+// ==========================================
+// Generate Expression
+// ==========================================
+
 std::string CodeGenerator::generateExpression(
     const std::shared_ptr<Expression>& expression)
 {
@@ -10,8 +14,10 @@ std::string CodeGenerator::generateExpression(
         return "";
     }
 
+    // Number
     auto number =
-        std::dynamic_pointer_cast<NumberNode>(
+        std::dynamic_pointer_cast<
+            NumberNode>(
             expression);
 
     if (number)
@@ -20,8 +26,23 @@ std::string CodeGenerator::generateExpression(
             number->value);
     }
 
+    // String
+    auto string =
+        std::dynamic_pointer_cast<
+            StringNode>(
+            expression);
+
+    if (string)
+    {
+        return "\"" +
+               string->value +
+               "\"";
+    }
+
+    // Identifier
     auto identifier =
-        std::dynamic_pointer_cast<IdentifierNode>(
+        std::dynamic_pointer_cast<
+            IdentifierNode>(
             expression);
 
     if (identifier)
@@ -29,23 +50,31 @@ std::string CodeGenerator::generateExpression(
         return identifier->name;
     }
 
+    // Binary Expression
     auto binary =
-        std::dynamic_pointer_cast<BinaryExpressionNode>(
+        std::dynamic_pointer_cast<
+            BinaryExpressionNode>(
             expression);
 
     if (binary)
     {
         return "(" +
-               generateExpression(binary->left) +
+               generateExpression(
+                   binary->left) +
                " " +
                binary->op +
                " " +
-               generateExpression(binary->right) +
+               generateExpression(
+                   binary->right) +
                ")";
     }
 
     return "";
 }
+
+// ==========================================
+// Generate Statement
+// ==========================================
 
 std::string CodeGenerator::generateStatement(
     const std::shared_ptr<Statement>& statement,
@@ -57,8 +86,13 @@ std::string CodeGenerator::generateStatement(
 
     std::stringstream output;
 
+    // ==========================================
+    // Declaration
+    // ==========================================
+
     auto declaration =
-        std::dynamic_pointer_cast<DeclarationNode>(
+        std::dynamic_pointer_cast<
+            DeclarationNode>(
             statement);
 
     if (declaration)
@@ -74,8 +108,13 @@ std::string CodeGenerator::generateStatement(
         return output.str();
     }
 
+    // ==========================================
+    // Assignment
+    // ==========================================
+
     auto assignment =
-        std::dynamic_pointer_cast<AssignmentNode>(
+        std::dynamic_pointer_cast<
+            AssignmentNode>(
             statement);
 
     if (assignment)
@@ -91,8 +130,34 @@ std::string CodeGenerator::generateStatement(
         return output.str();
     }
 
+    // ==========================================
+    // Print
+    // ==========================================
+
+    auto print =
+        std::dynamic_pointer_cast<
+            PrintNode>(
+            statement);
+
+    if (print)
+    {
+        output
+            << spaces
+            << "print("
+            << generateExpression(
+                   print->value)
+            << ")\n";
+
+        return output.str();
+    }
+
+    // ==========================================
+    // If Else
+    // ==========================================
+
     auto ifElse =
-        std::dynamic_pointer_cast<IfElseNode>(
+        std::dynamic_pointer_cast<
+            IfElseNode>(
             statement);
 
     if (ifElse)
@@ -132,8 +197,13 @@ std::string CodeGenerator::generateStatement(
         return output.str();
     }
 
+    // ==========================================
+    // While Loop
+    // ==========================================
+
     auto whileNode =
-        std::dynamic_pointer_cast<WhileNode>(
+        std::dynamic_pointer_cast<
+            WhileNode>(
             statement);
 
     if (whileNode)
@@ -160,10 +230,19 @@ std::string CodeGenerator::generateStatement(
     return "";
 }
 
+// ==========================================
+// Generate Complete Program
+// ==========================================
+
 std::string CodeGenerator::generate(
     const std::shared_ptr<ProgramNode>& program)
 {
     std::stringstream output;
+
+    if (!program)
+    {
+        return "";
+    }
 
     for (const auto& statement :
          program->statements)

@@ -20,19 +20,29 @@ public:
 
 private:
     Token peek() const;
+
     Token advance();
+
     bool check(TokenType type) const;
+
     bool isAtEnd() const;
 
     std::shared_ptr<Statement> parseStatement();
 
     std::shared_ptr<Statement> parseDeclaration();
+
     std::shared_ptr<Statement> parseAssignment();
+
     std::shared_ptr<Statement> parseIfElse();
+
     std::shared_ptr<Statement> parseWhile();
 
+    std::shared_ptr<Statement> parsePrint();
+
     std::shared_ptr<Expression> parseExpression();
+
     std::shared_ptr<Expression> parsePrimary();
+
     std::shared_ptr<Expression> parseCondition();
 };
 
