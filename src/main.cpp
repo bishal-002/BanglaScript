@@ -281,6 +281,39 @@ void printStatement(
         return;
     }
 
+    auto whileNode =
+        std::dynamic_pointer_cast<WhileNode>(
+            statement);
+
+    if (whileNode)
+    {
+        std::cout
+            << spaces
+            << "WhileNode\n";
+
+        std::cout
+            << spaces
+            << "  Condition:\n";
+
+        printExpression(
+            whileNode->condition,
+            indent + 4);
+
+        std::cout
+            << spaces
+            << "  BODY:\n";
+
+        for (const auto &bodyStatement :
+             whileNode->body)
+        {
+            printStatement(
+                bodyStatement,
+                indent + 4);
+        }
+
+        return;
+    }
+
     std::cout
         << spaces
         << "Unknown Statement\n";
@@ -291,14 +324,11 @@ int main()
     std::setlocale(LC_ALL, "bn_BD.UTF-8");
 
     std::string source =
-        "ধরি সংখ্যা ক = ১০;\n"
-        "ক = ক + ২০;\n"
-        "যদি (ক > ১০) {\n"
-        "    ক = ক - ১;\n"
-        "}\n"
-        "নাহলে {\n"
-        "    ক = ০;\n"
-        "}";
+    "ধরি সংখ্যা ক = ০;\n"
+    "যতক্ষণ (ক < ৫)\n"
+    "{\n"
+    "    ক = ক + ১;\n"
+    "}";
 
     Lexer lexer(source);
 
