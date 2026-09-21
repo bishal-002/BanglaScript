@@ -1,4 +1,5 @@
 #include "lexer.h"
+#include "error.h"
 
 #include <cctype>
 #include <iostream>
@@ -126,9 +127,12 @@ std::vector<Token> Lexer::tokenize()
         if (std::isdigit(
                 static_cast<unsigned char>(current)))
         {
-            throw std::runtime_error(
-                "English numerals are not allowed. "
-                "Use Bangla numerals (০-৯).");
+            ErrorReporter::report(
+              ErrorType::LEXICAL,
+              message,
+              line);
+
+            throw std::runtime_error(message);
         }
 
         // Identifier / keyword
