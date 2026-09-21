@@ -127,9 +127,6 @@ std::vector<Token> Lexer::tokenize()
         if (std::isdigit(
                 static_cast<unsigned char>(current)))
         {
-            std::string message =
-                "English numerals are not allowed. "
-                "Use Bangla numerals (০-৯).";
             ErrorReporter::report(
                 ErrorType::LEXICAL,
                 message,
@@ -191,123 +188,167 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
-        // Two-character operators
-        if (position + 1 < source.length())
+        // String literal
+        if (current == '"')
         {
-            std::string twoChars =
-                source.substr(position, 2);
+            position++;
 
-            if (twoChars == ">=")
+            std::string value;
+
+            while (position < source.length() &&
+                   source[position] != '"')
             {
-                tokens.emplace_back(
-                    TokenType::GTE,
-                    twoChars,
-                    line);
+                if (source[position] == '\n')
+                {
+                    std::string message =
+                        "String literal cannot continue to a new line.";
 
-                position += 2;
-                continue;
+                    ErrorReporter::report(
+                        ErrorType::LEXICAL,
+                        message,
+                        line);
+
+                    throw std::runtime_error(message);
+                }
+
+                value += source[position];
+                position++;
             }
 
-            if (twoChars == "<=")
+            if (position >= source.length())
             {
-                tokens.emplace_back(
-                    TokenType::LTE,
-                    twoChars,
+                std::string message =
+                    "Unterminated string literal.";
+
+                ErrorReporter::report(
+                    ErrorType::LEXICAL,
+                    message,
                     line);
 
-                position += 2;
-                continue;
+                throw std::runtime_error(message);
             }
 
-            if (twoChars == "==")
-            {
-                tokens.emplace_back(
-                    TokenType::EQ,
-                    twoChars,
-                    line);
+            position++;
 
-                position += 2;
-                continue;
-            }
-
-            if (twoChars == "!=")
-            {
-                tokens.emplace_back(
-                    TokenType::NEQ,
-                    twoChars,
-                    line);
-
-                position += 2;
-                continue;
-            }
-        }
-
-        // Single-character tokens
-        switch (current)
-        {
-        case '+':
-            tokens.emplace_back(TokenType::PLUS, "+", line);
-            break;
-
-        case '-':
-            tokens.emplace_back(TokenType::MINUS, "-", line);
-            break;
-
-        case '*':
-            tokens.emplace_back(TokenType::STAR, "*", line);
-            break;
-
-        case '/':
-            tokens.emplace_back(TokenType::SLASH, "/", line);
-            break;
-
-        case '=':
-            tokens.emplace_back(TokenType::ASSIGN, "=", line);
-            break;
-
-        case '>':
-            tokens.emplace_back(TokenType::GT, ">", line);
-            break;
-
-        case '<':
-            tokens.emplace_back(TokenType::LT, "<", line);
-            break;
-
-        case ';':
-            tokens.emplace_back(TokenType::SEMICOLON, ";", line);
-            break;
-
-        case '(':
-            tokens.emplace_back(TokenType::LPAREN, "(", line);
-            break;
-
-        case ')':
-            tokens.emplace_back(TokenType::RPAREN, ")", line);
-            break;
-
-        case '{':
-            tokens.emplace_back(TokenType::LBRACE, "{", line);
-            break;
-
-        case '}':
-            tokens.emplace_back(TokenType::RBRACE, "}", line);
-            break;
-
-        default:
             tokens.emplace_back(
-                TokenType::UNKNOWN,
-                std::string(1, current),
+                TokenType::STRING_LITERAL,
+                value,
                 line);
-            break;
+
+            continue;
         }
 
-        position++;
+        if (twoChars == ">=")
+        {
+            tokens.emplace_back(
+                TokenType::GTE,
+                twoChars,
+                line);
+
+            position += 2;
+            continue;
+        }
+
+        if (twoChars == "<=")
+        {
+            tokens.emplace_back(
+                TokenType::LTE,
+                twoChars,
+                line);
+
+            position += 2;
+            continue;
+        }
+
+        if (twoChars == "==")
+        {
+            tokens.emplace_back(
+                TokenType::EQ,
+                twoChars,
+                line);
+
+            position += 2;
+            continue;
+        }
+
+        if (twoChars == "!=")
+        {
+            tokens.emplace_back(
+                TokenType::NEQ,
+                twoChars,
+                line);
+
+            position += 2;
+            continue;
+        }
     }
 
-    tokens.emplace_back(
-        TokenType::END_OF_FILE,
-        "EOF",
-        line);
+    // Single-character tokens
+    switch (current)
+    {
+    case '+':
+        tokens.emplace_back(TokenType::PLUS, "+", line);
+        break;
 
-    return tokens;
+    case '-':
+        tokens.emplace_back(TokenType::MINUS, "-", line);
+        break;
+
+    case '*':
+        tokens.emplace_back(TokenType::STAR, "*", line);
+        break;
+
+    case '/':
+        tokens.emplace_back(TokenType::SLASH, "/", line);
+        break;
+
+    case '=':
+        tokens.emplace_back(TokenType::ASSIGN, "=", line);
+        break;
+
+    case '>':
+        tokens.emplace_back(TokenType::GT, ">", line);
+        break;
+
+    case '<':
+        tokens.emplace_back(TokenType::LT, "<", line);
+        break;
+
+    case ';':
+        tokens.emplace_back(TokenType::SEMICOLON, ";", line);
+        break;
+
+    case '(':
+        tokens.emplace_back(TokenType::LPAREN, "(", line);
+        break;
+
+    case ')':
+        tokens.emplace_back(TokenType::RPAREN, ")", line);
+        break;
+
+    case '{':
+        tokens.emplace_back(TokenType::LBRACE, "{", line);
+        break;
+
+    case '}':
+        tokens.emplace_back(TokenType::RBRACE, "}", line);
+        break;
+
+    default:
+        tokens.emplace_back(
+            TokenType::UNKNOWN,
+            std::string(1, current),
+            line);
+        break;
+    }
+
+    position++;
+}
+
+tokens.emplace_back(
+    TokenType::END_OF_FILE,
+    "EOF",
+    line);
+
+return tokens;
 }
