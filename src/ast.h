@@ -5,14 +5,20 @@
 #include <string>
 #include <vector>
 
+// ==========================================
 // Base AST Node
+// ==========================================
+
 class ASTNode
 {
 public:
     virtual ~ASTNode() = default;
 };
 
-// Base Classes
+// ==========================================
+// Base Statement and Expression
+// ==========================================
+
 class Statement : public ASTNode
 {
 };
@@ -21,14 +27,21 @@ class Expression : public ASTNode
 {
 };
 
+// ==========================================
 // Program Node
+// ==========================================
+
 class ProgramNode : public ASTNode
 {
 public:
     std::vector<std::shared_ptr<Statement>> statements;
 };
 
+// ==========================================
 // Expression Nodes
+// ==========================================
+
+// Number
 class NumberNode : public Expression
 {
 public:
@@ -40,6 +53,19 @@ public:
     }
 };
 
+// String
+class StringNode : public Expression
+{
+public:
+    std::string value;
+
+    StringNode(const std::string& value)
+        : value(value)
+    {
+    }
+};
+
+// Identifier
 class IdentifierNode : public Expression
 {
 public:
@@ -51,6 +77,7 @@ public:
     }
 };
 
+// Binary Expression
 class BinaryExpressionNode : public Expression
 {
 public:
@@ -70,7 +97,11 @@ public:
     }
 };
 
+// ==========================================
 // Statement Nodes
+// ==========================================
+
+// Declaration
 class DeclarationNode : public Statement
 {
 public:
@@ -90,6 +121,7 @@ public:
     }
 };
 
+// Assignment
 class AssignmentNode : public Statement
 {
 public:
@@ -106,16 +138,31 @@ public:
     }
 };
 
+// Print
+class PrintNode : public Statement
+{
+public:
+    std::shared_ptr<Expression> value;
+
+    PrintNode(
+        std::shared_ptr<Expression> value)
+        : value(value)
+    {
+    }
+};
+
+// If Else
 class IfElseNode : public Statement
 {
 public:
     std::shared_ptr<Expression> condition;
 
     std::vector<std::shared_ptr<Statement>> ifBody;
+
     std::vector<std::shared_ptr<Statement>> elseBody;
 };
 
-// While Loop Node
+// While Loop
 class WhileNode : public Statement
 {
 public:
@@ -123,7 +170,8 @@ public:
 
     std::vector<std::shared_ptr<Statement>> body;
 
-    WhileNode(std::shared_ptr<Expression> condition)
+    WhileNode(
+        std::shared_ptr<Expression> condition)
         : condition(condition)
     {
     }

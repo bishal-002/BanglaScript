@@ -4,11 +4,20 @@
 #include <iostream>
 #include <stdexcept>
 
-Parser::Parser(const std::vector<Token>& tokens)
+// ==========================================
+// Constructor
+// ==========================================
+
+Parser::Parser(
+    const std::vector<Token>& tokens)
     : tokens(tokens),
       current(0)
 {
 }
+
+// ==========================================
+// Token Helper Functions
+// ==========================================
 
 Token Parser::peek() const
 {
@@ -38,22 +47,30 @@ bool Parser::check(TokenType type) const
 bool Parser::isAtEnd() const
 {
     return current >= tokens.size() ||
-           tokens[current].type == TokenType::END_OF_FILE;
+           tokens[current].type ==
+               TokenType::END_OF_FILE;
 }
+
+// ==========================================
+// Main Parse Function
+// ==========================================
 
 std::shared_ptr<ProgramNode> Parser::parse()
 {
-    auto program = std::make_shared<ProgramNode>();
+    auto program =
+        std::make_shared<ProgramNode>();
 
     while (!isAtEnd())
     {
         try
         {
-            auto statement = parseStatement();
+            auto statement =
+                parseStatement();
 
             if (statement)
             {
-                program->statements.push_back(statement);
+                program->statements.push_back(
+                    statement);
             }
         }
         catch (const std::runtime_error& error)
@@ -61,8 +78,7 @@ std::shared_ptr<ProgramNode> Parser::parse()
             ErrorReporter::report(
                 ErrorType::PARSER,
                 error.what(),
-                peek().line
-            );
+                peek().line);
 
             if (!isAtEnd())
             {
@@ -74,7 +90,12 @@ std::shared_ptr<ProgramNode> Parser::parse()
     return program;
 }
 
-std::shared_ptr<Statement> Parser::parseStatement()
+// ==========================================
+// Statement Parser
+// ==========================================
+
+std::shared_ptr<Statement>
+Parser::parseStatement()
 {
     // Declaration
     if (check(TokenType::KEYWORD_DHORI))
@@ -82,7 +103,7 @@ std::shared_ptr<Statement> Parser::parseStatement()
         return parseDeclaration();
     }
 
-    // If / Else
+    // If Else
     if (check(TokenType::KEYWORD_JODI))
     {
         return parseIfElse();
@@ -94,6 +115,12 @@ std::shared_ptr<Statement> Parser::parseStatement()
         return parseWhile();
     }
 
+    // Print
+    if (check(TokenType::KEYWORD_DEKHAO))
+    {
+        return parsePrint();
+    }
+
     // Assignment
     if (check(TokenType::IDENTIFIER))
     {
@@ -101,148 +128,234 @@ std::shared_ptr<Statement> Parser::parseStatement()
     }
 
     throw std::runtime_error(
-        "Unexpected token: " + peek().lexeme
-    );
+        "Unexpected token: " +
+        peek().lexeme);
 }
 
-std::shared_ptr<Statement> Parser::parseDeclaration()
+// ==========================================
+// Declaration
+// ==========================================
+
+std::shared_ptr<Statement>
+Parser::parseDeclaration()
 {
     // Consume "ধরি"
     advance();
 
-    if (!check(TokenType::TYPE_SONGKHA))
+    // Accept সংখ্যা or লেখা
+    if (!check(TokenType::TYPE_SONGKHA) &&
+        !check(TokenType::TYPE_LEKHA))
     {
         throw std::runtime_error(
-            "Expected type after declaration keyword."
-        );
+            "Expected type after declaration keyword.");
     }
 
-    // Get variable type
-    std::string variableType = advance().lexeme;
+    std::string variableType =
+        advance().lexeme;
 
+    // Identifier
     if (!check(TokenType::IDENTIFIER))
     {
         throw std::runtime_error(
-            "Expected identifier in declaration."
-        );
+            "Expected identifier in declaration.");
     }
 
-    // Get variable name
-    std::string variableName = advance().lexeme;
+    std::string variableName =
+        advance().lexeme;
 
+    // =
     if (!check(TokenType::ASSIGN))
     {
         throw std::runtime_error(
-            "Expected '=' in declaration."
-        );
+            "Expected '=' in declaration.");
     }
 
-    // Consume "="
     advance();
 
-    // Parse value
-    auto value = parseExpression();
+    // Value
+    auto value =
+        parseExpression();
 
+    // ;
     if (!check(TokenType::SEMICOLON))
     {
         throw std::runtime_error(
-            "Expected ';' after declaration."
-        );
+            "Expected ';' after declaration.");
     }
 
-    // Consume ";"
     advance();
 
     return std::make_shared<DeclarationNode>(
         variableType,
         variableName,
-        value
-    );
+        value);
 }
 
-std::shared_ptr<Statement> Parser::parseAssignment()
-{
-    // Get variable name
-    std::string variableName = advance().lexeme;
+// ==========================================
+// Assignment
+// ==========================================
 
+std::shared_ptr<Statement>
+Parser::parseAssignment()
+{
+    std::string variableName =
+        advance().lexeme;
+
+    // =
     if (!check(TokenType::ASSIGN))
     {
         throw std::runtime_error(
-            "Expected '=' after identifier."
-        );
+            "Expected '=' after identifier.");
     }
 
-    // Consume "="
     advance();
 
-    // Parse value
-    auto value = parseExpression();
+    // Value
+    auto value =
+        parseExpression();
 
+    // ;
     if (!check(TokenType::SEMICOLON))
     {
         throw std::runtime_error(
-            "Expected ';' after assignment."
-        );
+            "Expected ';' after assignment.");
     }
 
-    // Consume ";"
     advance();
 
     return std::make_shared<AssignmentNode>(
         variableName,
-        value
-    );
+        value);
 }
 
-std::shared_ptr<Expression> Parser::parseExpression()
+// ==========================================
+// Print
+// ==========================================
+
+std::shared_ptr<Statement>
+Parser::parsePrint()
 {
-    auto left = parsePrimary();
+    // Consume "দেখাও"
+    advance();
+
+    // (
+    if (!check(TokenType::LPAREN))
+    {
+        throw std::runtime_error(
+            "Expected '(' after print keyword.");
+    }
+
+    advance();
+
+    // Expression
+    auto value =
+        parseExpression();
+
+    // )
+    if (!check(TokenType::RPAREN))
+    {
+        throw std::runtime_error(
+            "Expected ')' after print expression.");
+    }
+
+    advance();
+
+    // ;
+    if (!check(TokenType::SEMICOLON))
+    {
+        throw std::runtime_error(
+            "Expected ';' after print statement.");
+    }
+
+    advance();
+
+    return std::make_shared<PrintNode>(
+        value);
+}
+
+// ==========================================
+// Expression
+// ==========================================
+
+std::shared_ptr<Expression>
+Parser::parseExpression()
+{
+    auto left =
+        parsePrimary();
 
     while (check(TokenType::PLUS) ||
            check(TokenType::MINUS) ||
            check(TokenType::STAR) ||
            check(TokenType::SLASH))
     {
-        std::string op = advance().lexeme;
+        std::string op =
+            advance().lexeme;
 
-        auto right = parsePrimary();
+        auto right =
+            parsePrimary();
 
-        left = std::make_shared<BinaryExpressionNode>(
-            op,
-            left,
-            right
-        );
+        left =
+            std::make_shared<BinaryExpressionNode>(
+                op,
+                left,
+                right);
     }
 
     return left;
 }
 
-std::shared_ptr<Expression> Parser::parsePrimary()
+// ==========================================
+// Primary Expression
+// ==========================================
+
+std::shared_ptr<Expression>
+Parser::parsePrimary()
 {
     // Number
     if (check(TokenType::NUMBER))
     {
-        int value = std::stoi(advance().lexeme);
+        int value =
+            std::stoi(
+                advance().lexeme);
 
-        return std::make_shared<NumberNode>(value);
+        return std::make_shared<NumberNode>(
+            value);
+    }
+
+    // String
+    if (check(TokenType::STRING_LITERAL))
+    {
+        std::string value =
+            advance().lexeme;
+
+        return std::make_shared<StringNode>(
+            value);
     }
 
     // Identifier
     if (check(TokenType::IDENTIFIER))
     {
-        std::string name = advance().lexeme;
+        std::string name =
+            advance().lexeme;
 
-        return std::make_shared<IdentifierNode>(name);
+        return std::make_shared<IdentifierNode>(
+            name);
     }
 
     throw std::runtime_error(
-        "Expected number or identifier in expression."
-    );
+        "Expected number, string, or identifier "
+        "in expression.");
 }
 
-std::shared_ptr<Expression> Parser::parseCondition()
+// ==========================================
+// Condition
+// ==========================================
+
+std::shared_ptr<Expression>
+Parser::parseCondition()
 {
-    auto left = parsePrimary();
+    auto left =
+        parsePrimary();
 
     if (!(check(TokenType::GT) ||
           check(TokenType::LT) ||
@@ -252,189 +365,198 @@ std::shared_ptr<Expression> Parser::parseCondition()
           check(TokenType::NEQ)))
     {
         throw std::runtime_error(
-            "Expected comparison operator in condition."
-        );
+            "Expected comparison operator in condition.");
     }
 
-    std::string op = advance().lexeme;
+    std::string op =
+        advance().lexeme;
 
-    auto right = parsePrimary();
+    auto right =
+        parsePrimary();
 
     return std::make_shared<BinaryExpressionNode>(
         op,
         left,
-        right
-    );
+        right);
 }
 
-std::shared_ptr<Statement> Parser::parseIfElse()
+// ==========================================
+// If Else
+// ==========================================
+
+std::shared_ptr<Statement>
+Parser::parseIfElse()
 {
     // Consume "যদি"
     advance();
 
+    // (
     if (!check(TokenType::LPAREN))
     {
         throw std::runtime_error(
-            "Expected '(' after if."
-        );
+            "Expected '(' after if.");
     }
 
-    // Consume "("
     advance();
 
-    // Parse condition
-    auto condition = parseCondition();
+    // Condition
+    auto condition =
+        parseCondition();
 
+    // )
     if (!check(TokenType::RPAREN))
     {
         throw std::runtime_error(
-            "Expected ')' after condition."
-        );
+            "Expected ')' after condition.");
     }
 
-    // Consume ")"
     advance();
 
+    // {
     if (!check(TokenType::LBRACE))
     {
         throw std::runtime_error(
-            "Expected '{' before if body."
-        );
+            "Expected '{' before if body.");
     }
 
-    // Consume "{"
     advance();
 
-    auto ifElseNode = std::make_shared<IfElseNode>();
+    auto ifElseNode =
+        std::make_shared<IfElseNode>();
 
-    ifElseNode->condition = condition;
+    ifElseNode->condition =
+        condition;
 
-    // Parse IF body
+    // IF body
     while (!check(TokenType::RBRACE) &&
            !isAtEnd())
     {
-        auto statement = parseStatement();
+        auto statement =
+            parseStatement();
 
         if (statement)
         {
-            ifElseNode->ifBody.push_back(statement);
+            ifElseNode->ifBody.push_back(
+                statement);
         }
     }
 
+    // }
     if (!check(TokenType::RBRACE))
     {
         throw std::runtime_error(
-            "Expected '}' after if body."
-        );
+            "Expected '}' after if body.");
     }
 
-    // Consume "}"
     advance();
 
-    // Check for "নাহলে"
+    // Else
     if (check(TokenType::KEYWORD_NAHOLE))
     {
-        // Consume "নাহলে"
         advance();
 
+        // {
         if (!check(TokenType::LBRACE))
         {
             throw std::runtime_error(
-                "Expected '{' before else body."
-            );
+                "Expected '{' before else body.");
         }
 
-        // Consume "{"
         advance();
 
-        // Parse ELSE body
+        // ELSE body
         while (!check(TokenType::RBRACE) &&
                !isAtEnd())
         {
-            auto statement = parseStatement();
+            auto statement =
+                parseStatement();
 
             if (statement)
             {
-                ifElseNode->elseBody.push_back(statement);
+                ifElseNode->elseBody.push_back(
+                    statement);
             }
         }
 
+        // }
         if (!check(TokenType::RBRACE))
         {
             throw std::runtime_error(
-                "Expected '}' after else body."
-            );
+                "Expected '}' after else body.");
         }
 
-        // Consume "}"
         advance();
     }
 
     return ifElseNode;
 }
 
-std::shared_ptr<Statement> Parser::parseWhile()
+// ==========================================
+// While Loop
+// ==========================================
+
+std::shared_ptr<Statement>
+Parser::parseWhile()
 {
     // Consume "যতক্ষণ"
     advance();
 
+    // (
     if (!check(TokenType::LPAREN))
     {
         throw std::runtime_error(
-            "Expected '(' after while."
-        );
+            "Expected '(' after while.");
     }
 
-    // Consume "("
     advance();
 
-    // Parse condition
-    auto condition = parseCondition();
+    // Condition
+    auto condition =
+        parseCondition();
 
+    // )
     if (!check(TokenType::RPAREN))
     {
         throw std::runtime_error(
-            "Expected ')' after while condition."
-        );
+            "Expected ')' after while condition.");
     }
 
-    // Consume ")"
     advance();
 
+    // {
     if (!check(TokenType::LBRACE))
     {
         throw std::runtime_error(
-            "Expected '{' before while body."
-        );
+            "Expected '{' before while body.");
     }
 
-    // Consume "{"
     advance();
 
-    // Create WhileNode
     auto whileNode =
-        std::make_shared<WhileNode>(condition);
+        std::make_shared<WhileNode>(
+            condition);
 
-    // Parse statements inside while body
+    // While body
     while (!check(TokenType::RBRACE) &&
            !isAtEnd())
     {
-        auto statement = parseStatement();
+        auto statement =
+            parseStatement();
 
         if (statement)
         {
-            whileNode->body.push_back(statement);
+            whileNode->body.push_back(
+                statement);
         }
     }
 
+    // }
     if (!check(TokenType::RBRACE))
     {
         throw std::runtime_error(
-            "Expected '}' after while body."
-        );
+            "Expected '}' after while body.");
     }
 
-    // Consume "}"
     advance();
 
     return whileNode;
