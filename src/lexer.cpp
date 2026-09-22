@@ -1,11 +1,13 @@
 #include "lexer.h"
+#include "error.h"
 
 #include <cctype>
 #include <iostream>
+#include <stdexcept>
 #include <unordered_map>
 
 static bool isBanglaDigitAt(
-    const std::string &source,
+    const std::string& source,
     size_t pos)
 {
     static const std::string digits[] =
@@ -13,9 +15,12 @@ static bool isBanglaDigitAt(
             "০", "১", "২", "৩", "৪",
             "৫", "৬", "৭", "৮", "৯"};
 
-    for (const auto &digit : digits)
+    for (const auto& digit : digits)
     {
-        if (source.compare(pos, digit.size(), digit) == 0)
+        if (source.compare(
+                pos,
+                digit.size(),
+                digit) == 0)
         {
             return true;
         }
@@ -25,34 +30,45 @@ static bool isBanglaDigitAt(
 }
 
 static char banglaDigitToAscii(
-    const std::string &digit)
+    const std::string& digit)
 {
     if (digit == "০")
         return '0';
+
     if (digit == "১")
         return '1';
+
     if (digit == "২")
         return '2';
+
     if (digit == "৩")
         return '3';
+
     if (digit == "৪")
         return '4';
+
     if (digit == "৫")
         return '5';
+
     if (digit == "৬")
         return '6';
+
     if (digit == "৭")
         return '7';
+
     if (digit == "৮")
         return '8';
+
     if (digit == "৯")
         return '9';
 
     return '?';
 }
 
-Lexer::Lexer(const std::string &source)
-    : source(source), position(0), line(1)
+Lexer::Lexer(const std::string& source)
+    : source(source),
+      position(0),
+      line(1)
 {
 }
 
@@ -65,7 +81,9 @@ std::vector<Token> Lexer::tokenize()
         char current = source[position];
 
         // Ignore spaces and tabs
-        if (current == ' ' || current == '\t' || current == '\r')
+        if (current == ' ' ||
+            current == '\t' ||
+            current == '\r')
         {
             position++;
             continue;
@@ -79,53 +97,10 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
-        // Identifier / keyword
-        if (std::isalpha(static_cast<unsigned char>(current)) ||
-            static_cast<unsigned char>(current) >= 128)
-        {
-            std::string value;
-
-            while (position < source.length())
-            {
-                unsigned char c =
-                    static_cast<unsigned char>(source[position]);
-
-                if (std::isalnum(c) || c >= 128)
-                {
-                    value += source[position];
-                    position++;
-                }
-                else
-                {
-                    break;
-                }
-            }
-
-            static const std::unordered_map<std::string, TokenType> keywords =
-                {
-                    {"ধরি", TokenType::KEYWORD_DHORI},
-                    {"যদি", TokenType::KEYWORD_JODI},
-                    {"নাহলে", TokenType::KEYWORD_NAHOLE},
-                    {"সংখ্যা", TokenType::TYPE_SONGKHA}};
-
-            auto it = keywords.find(value);
-
-            if (it != keywords.end())
-            {
-                tokens.emplace_back(it->second, value, line);
-            }
-            else
-            {
-                tokens.emplace_back(
-                    TokenType::IDENTIFIER,
-                    value,
-                    line);
-            }
-
-            continue;
-        }
-
+        // ==========================================
         // Bangla Number
+        // ==========================================
+
         if (isBanglaDigitAt(source, position))
         {
             std::string number;
@@ -139,18 +114,20 @@ std::vector<Token> Lexer::tokenize()
                         "০", "১", "২", "৩", "৪",
                         "৫", "৬", "৭", "৮", "৯"};
 
-                for (const auto &digit : digits)
+                for (const auto& digit : digits)
                 {
                     if (source.compare(
                             position,
                             digit.size(),
                             digit) == 0)
                     {
-                        number += banglaDigitToAscii(digit);
+                        number +=
+                            banglaDigitToAscii(digit);
 
                         position += digit.size();
 
                         foundDigit = true;
+
                         break;
                     }
                 }
@@ -169,15 +146,159 @@ std::vector<Token> Lexer::tokenize()
             continue;
         }
 
+        // ==========================================
+        // English Numbers are not allowed
+        // ==========================================
+
         if (std::isdigit(
                 static_cast<unsigned char>(current)))
         {
-            throw std::runtime_error(
+            std::string message =
                 "English numerals are not allowed. "
-                "Use Bangla numerals (০-৯).");
+                "Use Bangla numerals (০-৯).";
+
+            ErrorReporter::report(
+                ErrorType::LEXICAL,
+                message,
+                line);
+
+            throw std::runtime_error(message);
         }
 
+        // ==========================================
+        // String Literal
+        // ==========================================
+
+        if (current == '"')
+        {
+            position++;
+
+            std::string value;
+
+            while (position < source.length() &&
+                   source[position] != '"')
+            {
+                if (source[position] == '\n')
+                {
+                    std::string message =
+                        "String literal cannot continue "
+                        "to a new line.";
+
+                    ErrorReporter::report(
+                        ErrorType::LEXICAL,
+                        message,
+                        line);
+
+                    throw std::runtime_error(message);
+                }
+
+                value += source[position];
+
+                position++;
+            }
+
+            if (position >= source.length())
+            {
+                std::string message =
+                    "Unterminated string literal.";
+
+                ErrorReporter::report(
+                    ErrorType::LEXICAL,
+                    message,
+                    line);
+
+                throw std::runtime_error(message);
+            }
+
+            // Consume closing quote
+            position++;
+
+            tokens.emplace_back(
+                TokenType::STRING_LITERAL,
+                value,
+                line);
+
+            continue;
+        }
+
+        // ==========================================
+        // Identifier / Keyword
+        // ==========================================
+
+        if (std::isalpha(
+                static_cast<unsigned char>(current)) ||
+            static_cast<unsigned char>(current) >= 128)
+        {
+            std::string value;
+
+            while (position < source.length())
+            {
+                unsigned char c =
+                    static_cast<unsigned char>(
+                        source[position]);
+
+                if (std::isalnum(c) || c >= 128)
+                {
+                    value += source[position];
+
+                    position++;
+                }
+                else
+                {
+                    break;
+                }
+            }
+
+            static const std::unordered_map<
+                std::string,
+                TokenType> keywords =
+                {
+                    {"ধরি",
+                     TokenType::KEYWORD_DHORI},
+
+                    {"যদি",
+                     TokenType::KEYWORD_JODI},
+
+                    {"নাহলে",
+                     TokenType::KEYWORD_NAHOLE},
+
+                    {"যতক্ষণ",
+                     TokenType::KEYWORD_JOTOKKHON},
+
+                    {"দেখাও",
+                     TokenType::KEYWORD_DEKHAO},
+
+                    {"সংখ্যা",
+                     TokenType::TYPE_SONGKHA},
+
+                    {"লেখা",
+                     TokenType::TYPE_LEKHA}};
+
+            auto it =
+                keywords.find(value);
+
+            if (it != keywords.end())
+            {
+                tokens.emplace_back(
+                    it->second,
+                    value,
+                    line);
+            }
+            else
+            {
+                tokens.emplace_back(
+                    TokenType::IDENTIFIER,
+                    value,
+                    line);
+            }
+
+            continue;
+        }
+
+        // ==========================================
         // Two-character operators
+        // ==========================================
+
         if (position + 1 < source.length())
         {
             std::string twoChars =
@@ -191,6 +312,7 @@ std::vector<Token> Lexer::tokenize()
                     line);
 
                 position += 2;
+
                 continue;
             }
 
@@ -202,6 +324,7 @@ std::vector<Token> Lexer::tokenize()
                     line);
 
                 position += 2;
+
                 continue;
             }
 
@@ -213,6 +336,7 @@ std::vector<Token> Lexer::tokenize()
                     line);
 
                 position += 2;
+
                 continue;
             }
 
@@ -224,59 +348,99 @@ std::vector<Token> Lexer::tokenize()
                     line);
 
                 position += 2;
+
                 continue;
             }
         }
 
+        // ==========================================
         // Single-character tokens
+        // ==========================================
+
         switch (current)
         {
         case '+':
-            tokens.emplace_back(TokenType::PLUS, "+", line);
+            tokens.emplace_back(
+                TokenType::PLUS,
+                "+",
+                line);
             break;
 
         case '-':
-            tokens.emplace_back(TokenType::MINUS, "-", line);
+            tokens.emplace_back(
+                TokenType::MINUS,
+                "-",
+                line);
             break;
 
         case '*':
-            tokens.emplace_back(TokenType::STAR, "*", line);
+            tokens.emplace_back(
+                TokenType::STAR,
+                "*",
+                line);
             break;
 
         case '/':
-            tokens.emplace_back(TokenType::SLASH, "/", line);
+            tokens.emplace_back(
+                TokenType::SLASH,
+                "/",
+                line);
             break;
 
         case '=':
-            tokens.emplace_back(TokenType::ASSIGN, "=", line);
+            tokens.emplace_back(
+                TokenType::ASSIGN,
+                "=",
+                line);
             break;
 
         case '>':
-            tokens.emplace_back(TokenType::GT, ">", line);
+            tokens.emplace_back(
+                TokenType::GT,
+                ">",
+                line);
             break;
 
         case '<':
-            tokens.emplace_back(TokenType::LT, "<", line);
+            tokens.emplace_back(
+                TokenType::LT,
+                "<",
+                line);
             break;
 
         case ';':
-            tokens.emplace_back(TokenType::SEMICOLON, ";", line);
+            tokens.emplace_back(
+                TokenType::SEMICOLON,
+                ";",
+                line);
             break;
 
         case '(':
-            tokens.emplace_back(TokenType::LPAREN, "(", line);
+            tokens.emplace_back(
+                TokenType::LPAREN,
+                "(",
+                line);
             break;
 
         case ')':
-            tokens.emplace_back(TokenType::RPAREN, ")", line);
+            tokens.emplace_back(
+                TokenType::RPAREN,
+                ")",
+                line);
             break;
 
         case '{':
-            tokens.emplace_back(TokenType::LBRACE, "{", line);
+            tokens.emplace_back(
+                TokenType::LBRACE,
+                "{",
+                line);
             break;
 
         case '}':
-            tokens.emplace_back(TokenType::RBRACE, "}", line);
+            tokens.emplace_back(
+                TokenType::RBRACE,
+                "}",
+                line);
             break;
 
         default:

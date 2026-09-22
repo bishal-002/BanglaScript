@@ -2,11 +2,18 @@
 #include <string>
 #include <vector>
 #include <memory>
+#include <fstream>
+#include <clocale>
 
 #include "lexer.h"
 #include "parser.h"
 #include "ast.h"
 #include "semantic.h"
+#include "codegen.h"
+
+// ==========================================
+// Token Type to String
+// ==========================================
 
 std::string tokenTypeToString(TokenType type)
 {
@@ -21,14 +28,26 @@ std::string tokenTypeToString(TokenType type)
     case TokenType::KEYWORD_NAHOLE:
         return "KEYWORD_NAHOLE";
 
+    case TokenType::KEYWORD_JOTOKKHON:
+        return "KEYWORD_JOTOKKHON";
+
+    case TokenType::KEYWORD_DEKHAO:
+        return "KEYWORD_DEKHAO";
+
     case TokenType::TYPE_SONGKHA:
         return "TYPE_SONGKHA";
+
+    case TokenType::TYPE_LEKHA:
+        return "TYPE_LEKHA";
 
     case TokenType::IDENTIFIER:
         return "IDENTIFIER";
 
     case TokenType::NUMBER:
         return "NUMBER";
+
+    case TokenType::STRING_LITERAL:
+        return "STRING_LITERAL";
 
     case TokenType::PLUS:
         return "PLUS";
@@ -88,19 +107,21 @@ std::string tokenTypeToString(TokenType type)
     return "UNKNOWN";
 }
 
+// ==========================================
+// Print Expression
+// ==========================================
+
 void printExpression(
-    const std::shared_ptr<Expression> &expression,
+    const std::shared_ptr<Expression>& expression,
     int indent = 0)
 {
-    std::string spaces(indent, ' ');
+    std::string spaces(
+        indent,
+        ' ');
 
-    if (!expression)
-    {
-        std::cout << spaces << "NULL Expression\n";
-        return;
-    }
     auto number =
-        std::dynamic_pointer_cast<NumberNode>(expression);
+        std::dynamic_pointer_cast<NumberNode>(
+            expression);
 
     if (number)
     {
@@ -112,8 +133,25 @@ void printExpression(
 
         return;
     }
+
+    auto string =
+        std::dynamic_pointer_cast<StringNode>(
+            expression);
+
+    if (string)
+    {
+        std::cout
+            << spaces
+            << "StringNode: "
+            << string->value
+            << '\n';
+
+        return;
+    }
+
     auto identifier =
-        std::dynamic_pointer_cast<IdentifierNode>(expression);
+        std::dynamic_pointer_cast<IdentifierNode>(
+            expression);
 
     if (identifier)
     {
@@ -125,8 +163,10 @@ void printExpression(
 
         return;
     }
+
     auto binary =
-        std::dynamic_pointer_cast<BinaryExpressionNode>(
+        std::dynamic_pointer_cast<
+            BinaryExpressionNode>(
             expression);
 
     if (binary)
@@ -139,7 +179,8 @@ void printExpression(
 
         std::cout
             << spaces
-            << "  Left:\n";
+            << "  Left:"
+            << '\n';
 
         printExpression(
             binary->left,
@@ -147,44 +188,39 @@ void printExpression(
 
         std::cout
             << spaces
-            << "  Right:\n";
+            << "  Right:"
+            << '\n';
 
         printExpression(
             binary->right,
             indent + 4);
-
-        return;
     }
-
-    std::cout
-        << spaces
-        << "Unknown Expression\n";
 }
 
+// ==========================================
+// Print Statement
+// ==========================================
+
 void printStatement(
-    const std::shared_ptr<Statement> &statement,
+    const std::shared_ptr<Statement>& statement,
     int indent = 2)
 {
-    std::string spaces(indent, ' ');
+    std::string spaces(
+        indent,
+        ' ');
 
-    if (!statement)
-    {
-        std::cout
-            << spaces
-            << "NULL Statement\n";
-
-        return;
-    }
-
+    // Declaration
     auto declaration =
-        std::dynamic_pointer_cast<DeclarationNode>(
+        std::dynamic_pointer_cast<
+            DeclarationNode>(
             statement);
 
     if (declaration)
     {
         std::cout
             << spaces
-            << "DeclarationNode\n";
+            << "DeclarationNode"
+            << '\n';
 
         std::cout
             << spaces
@@ -200,7 +236,8 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  Value:\n";
+            << "  Value:"
+            << '\n';
 
         printExpression(
             declaration->value,
@@ -209,15 +246,18 @@ void printStatement(
         return;
     }
 
+    // Assignment
     auto assignment =
-        std::dynamic_pointer_cast<AssignmentNode>(
+        std::dynamic_pointer_cast<
+            AssignmentNode>(
             statement);
 
     if (assignment)
     {
         std::cout
             << spaces
-            << "AssignmentNode\n";
+            << "AssignmentNode"
+            << '\n';
 
         std::cout
             << spaces
@@ -227,7 +267,8 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  Value:\n";
+            << "  Value:"
+            << '\n';
 
         printExpression(
             assignment->value,
@@ -236,19 +277,48 @@ void printStatement(
         return;
     }
 
+    // Print
+    auto print =
+        std::dynamic_pointer_cast<
+            PrintNode>(
+            statement);
+
+    if (print)
+    {
+        std::cout
+            << spaces
+            << "PrintNode"
+            << '\n';
+
+        std::cout
+            << spaces
+            << "  Value:"
+            << '\n';
+
+        printExpression(
+            print->value,
+            indent + 4);
+
+        return;
+    }
+
+    // If Else
     auto ifElse =
-        std::dynamic_pointer_cast<IfElseNode>(
+        std::dynamic_pointer_cast<
+            IfElseNode>(
             statement);
 
     if (ifElse)
     {
         std::cout
             << spaces
-            << "IfElseNode\n";
+            << "IfElseNode"
+            << '\n';
 
         std::cout
             << spaces
-            << "  Condition:\n";
+            << "  Condition:"
+            << '\n';
 
         printExpression(
             ifElse->condition,
@@ -256,9 +326,10 @@ void printStatement(
 
         std::cout
             << spaces
-            << "  IF BODY:\n";
+            << "  If Body:"
+            << '\n';
 
-        for (const auto &bodyStatement :
+        for (const auto& bodyStatement :
              ifElse->ifBody)
         {
             printStatement(
@@ -266,12 +337,54 @@ void printStatement(
                 indent + 4);
         }
 
+        if (!ifElse->elseBody.empty())
+        {
+            std::cout
+                << spaces
+                << "  Else Body:"
+                << '\n';
+
+            for (const auto& bodyStatement :
+                 ifElse->elseBody)
+            {
+                printStatement(
+                    bodyStatement,
+                    indent + 4);
+            }
+        }
+
+        return;
+    }
+
+    // While
+    auto whileNode =
+        std::dynamic_pointer_cast<
+            WhileNode>(
+            statement);
+
+    if (whileNode)
+    {
         std::cout
             << spaces
-            << "  ELSE BODY:\n";
+            << "WhileNode"
+            << '\n';
 
-        for (const auto &bodyStatement :
-             ifElse->elseBody)
+        std::cout
+            << spaces
+            << "  Condition:"
+            << '\n';
+
+        printExpression(
+            whileNode->condition,
+            indent + 4);
+
+        std::cout
+            << spaces
+            << "  Body:"
+            << '\n';
+
+        for (const auto& bodyStatement :
+             whileNode->body)
         {
             printStatement(
                 bodyStatement,
@@ -280,23 +393,63 @@ void printStatement(
 
         return;
     }
-
-    std::cout
-        << spaces
-        << "Unknown Statement\n";
 }
 
-int main()
+// ==========================================
+// Main
+// ==========================================
+
+int main(int argc, char* argv[])
 {
-    std::string source =
-        "ধরি সংখ্যা ক = ১০;\n"
-        "ক = ক + ২০;\n"
-        "যদি (ক > ১০) {\n"
-        "    ক = ক - ১;\n"
-        "}\n"
-        "নাহলে {\n"
-        "    ক = ০;\n"
-        "}";
+    std::setlocale(
+        LC_ALL,
+        "bn_BD.UTF-8");
+
+    // ==========================================
+    // Check Input File
+    // ==========================================
+
+    if (argc < 2)
+    {
+        std::cout
+            << "Usage: BanglaScript.exe <file.bscript>"
+            << '\n';
+
+        return 1;
+    }
+
+    // ==========================================
+    // Read BanglaScript File
+    // ==========================================
+
+    std::ifstream inputFile(
+        argv[1]);
+
+    if (!inputFile.is_open())
+    {
+        std::cout
+            << "Error: Could not open file."
+            << '\n';
+
+        return 1;
+    }
+
+    std::string source(
+        (std::istreambuf_iterator<char>(
+            inputFile)),
+        std::istreambuf_iterator<char>()
+    );
+
+    inputFile.close();
+
+    std::cout
+        << "Compiling: "
+        << argv[1]
+        << '\n';
+
+    // ==========================================
+    // 1. LEXICAL ANALYSIS
+    // ==========================================
 
     Lexer lexer(source);
 
@@ -304,67 +457,114 @@ int main()
         lexer.tokenize();
 
     std::cout
-        << "========== TOKENS ==========\n";
+        << "\n========== TOKENS =========="
+        << '\n';
 
-    for (const Token &token : tokens)
+    for (const auto& token :
+         tokens)
     {
         std::cout
             << "Line "
             << token.line
             << " | "
-            << tokenTypeToString(token.type)
+            << tokenTypeToString(
+                   token.type)
             << " | "
             << token.lexeme
             << '\n';
     }
 
-    std::cout
-        << "\n========== PARSER ==========\n";
+    // ==========================================
+    // 2. PARSING
+    // ==========================================
 
     Parser parser(tokens);
 
-    auto program = parser.parse();
+    auto program =
+        parser.parse();
 
     std::cout
-        << "\n========== AST ==========\n";
-
-    if (program)
-    {
-        std::cout
-            << "ProgramNode\n";
-
-        for (const auto &statement :
-             program->statements)
-        {
-            printStatement(statement);
-        }
-    }
-    else
-    {
-        std::cout
-            << "AST construction failed.\n";
-    }
+        << "\n========== AST =========="
+        << '\n';
 
     std::cout
-        << "\n========== SEMANTIC ANALYSIS ==========\n";
+        << "ProgramNode"
+        << '\n';
+
+    for (const auto& statement :
+         program->statements)
+    {
+        printStatement(statement);
+    }
+
+    // ==========================================
+    // 3. SEMANTIC ANALYSIS
+    // ==========================================
+
+    std::cout
+        << "\n========== SEMANTIC ANALYSIS =========="
+        << '\n';
 
     SemanticAnalyzer semanticAnalyzer;
 
     bool semanticResult =
-        semanticAnalyzer.analyze(program);
+        semanticAnalyzer.analyze(
+            program);
 
-    if (semanticResult)
-    {
-        std::cout
-            << "Program passed semantic analysis."
-            << '\n';
-    }
-    else
+    if (!semanticResult)
     {
         std::cout
             << "Program failed semantic analysis."
             << '\n';
+
+        return 1;
     }
+
+    std::cout
+        << "Program passed semantic analysis."
+        << '\n';
+
+    // ==========================================
+    // 4. CODE GENERATION
+    // ==========================================
+
+    std::cout
+        << "\n========== CODE GENERATION =========="
+        << '\n';
+
+    CodeGenerator codeGenerator;
+
+    std::string generatedCode =
+        codeGenerator.generate(
+            program);
+
+    std::cout
+        << generatedCode;
+
+    // ==========================================
+    // 5. WRITE GENERATED CODE TO output.py
+    // ==========================================
+
+    std::ofstream outputFile(
+        "output.py");
+
+    if (!outputFile.is_open())
+    {
+        std::cout
+            << "\nError: Could not create output.py"
+            << '\n';
+
+        return 1;
+    }
+
+    outputFile
+        << generatedCode;
+
+    outputFile.close();
+
+    std::cout
+        << "\nGenerated Python code saved to output.py"
+        << '\n';
 
     return 0;
 }

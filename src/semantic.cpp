@@ -1,45 +1,65 @@
 #include "semantic.h"
+#include "error.h"
 
 #include <iostream>
 
-SemanticAnalyzer::SemanticAnalyzer(){}
+SemanticAnalyzer::SemanticAnalyzer()
+{
+}
+
+// ==========================================
+// Expression Analysis
+// ==========================================
 
 bool SemanticAnalyzer::analyzeExpression(
     const std::shared_ptr<Expression>& expression)
 {
     if (!expression)
     {
-        std::cout
-            << "Semantic Error: Empty expression."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "Empty expression.",
+            0);
 
         return false;
     }
 
+    // Number
     auto number =
         std::dynamic_pointer_cast<NumberNode>(
-            expression
-        );
+            expression);
 
     if (number)
     {
         return true;
     }
 
+    // String
+    auto string =
+        std::dynamic_pointer_cast<StringNode>(
+            expression);
+
+    if (string)
+    {
+        return true;
+    }
+
+    // Identifier
     auto identifier =
         std::dynamic_pointer_cast<IdentifierNode>(
-            expression
-        );
+            expression);
 
     if (identifier)
     {
-        if (!symbolTable.exists(identifier->name))
+        if (!symbolTable.exists(
+                identifier->name))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << identifier->name
-                << "' is not declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                    identifier->name +
+                    "' is not declared.",
+                0);
 
             return false;
         }
@@ -47,45 +67,59 @@ bool SemanticAnalyzer::analyzeExpression(
         return true;
     }
 
+    // Binary Expression
     auto binary =
-        std::dynamic_pointer_cast<BinaryExpressionNode>(
-            expression
-        );
+        std::dynamic_pointer_cast<
+            BinaryExpressionNode>(
+            expression);
 
     if (binary)
     {
         bool leftValid =
-            analyzeExpression(binary->left);
+            analyzeExpression(
+                binary->left);
 
         bool rightValid =
-            analyzeExpression(binary->right);
+            analyzeExpression(
+                binary->right);
 
-        return leftValid && rightValid;
+        return leftValid &&
+               rightValid;
     }
 
-    std::cout
-        << "Semantic Error: Unknown expression."
-        << '\n';
+    ErrorReporter::report(
+        ErrorType::SEMANTIC,
+        "Unknown expression.",
+        0);
 
     return false;
 }
+
+// ==========================================
+// Statement Analysis
+// ==========================================
 
 bool SemanticAnalyzer::analyzeStatement(
     const std::shared_ptr<Statement>& statement)
 {
     if (!statement)
     {
-        std::cout
-            << "Semantic Error: Empty statement."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "Empty statement.",
+            0);
 
         return false;
     }
 
+    // ==========================================
+    // Declaration
+    // ==========================================
+
     auto declaration =
-        std::dynamic_pointer_cast<DeclarationNode>(
-            statement
-        );
+        std::dynamic_pointer_cast<
+            DeclarationNode>(
+            statement);
 
     if (declaration)
     {
@@ -99,11 +133,12 @@ bool SemanticAnalyzer::analyzeStatement(
                 declaration->variableName,
                 declaration->variableType))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << declaration->variableName
-                << "' is already declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                    declaration->variableName +
+                    "' is already declared.",
+                0);
 
             return false;
         }
@@ -111,33 +146,57 @@ bool SemanticAnalyzer::analyzeStatement(
         return true;
     }
 
+    // ==========================================
+    // Assignment
+    // ==========================================
+
     auto assignment =
-        std::dynamic_pointer_cast<AssignmentNode>(
-            statement
-        );
+        std::dynamic_pointer_cast<
+            AssignmentNode>(
+            statement);
 
     if (assignment)
     {
         if (!symbolTable.exists(
                 assignment->variableName))
         {
-            std::cout
-                << "Semantic Error: Variable '"
-                << assignment->variableName
-                << "' is not declared."
-                << '\n';
+            ErrorReporter::report(
+                ErrorType::SEMANTIC,
+                "Variable '" +
+                    assignment->variableName +
+                    "' is not declared.",
+                0);
 
             return false;
         }
+
         return analyzeExpression(
-            assignment->value
-        );
+            assignment->value);
     }
 
+    // ==========================================
+    // Print
+    // ==========================================
+
+    auto print =
+        std::dynamic_pointer_cast<
+            PrintNode>(
+            statement);
+
+    if (print)
+    {
+        return analyzeExpression(
+            print->value);
+    }
+
+    // ==========================================
+    // If Else
+    // ==========================================
+
     auto ifElse =
-        std::dynamic_pointer_cast<IfElseNode>(
-            statement
-        );
+        std::dynamic_pointer_cast<
+            IfElseNode>(
+            statement);
 
     if (ifElse)
     {
@@ -170,21 +229,57 @@ bool SemanticAnalyzer::analyzeStatement(
         return true;
     }
 
-    std::cout
-        << "Semantic Error: Unknown statement."
-        << '\n';
+    // ==========================================
+    // While Loop
+    // ==========================================
+
+    auto whileNode =
+        std::dynamic_pointer_cast<
+            WhileNode>(
+            statement);
+
+    if (whileNode)
+    {
+        if (!analyzeExpression(
+                whileNode->condition))
+        {
+            return false;
+        }
+
+        for (const auto& bodyStatement :
+             whileNode->body)
+        {
+            if (!analyzeStatement(
+                    bodyStatement))
+            {
+                return false;
+            }
+        }
+
+        return true;
+    }
+
+    ErrorReporter::report(
+        ErrorType::SEMANTIC,
+        "Unknown statement.",
+        0);
 
     return false;
 }
+
+// ==========================================
+// Main Semantic Analysis
+// ==========================================
 
 bool SemanticAnalyzer::analyze(
     const std::shared_ptr<ProgramNode>& program)
 {
     if (!program)
     {
-        std::cout
-            << "Semantic Error: No program found."
-            << '\n';
+        ErrorReporter::report(
+            ErrorType::SEMANTIC,
+            "No program found.",
+            0);
 
         return false;
     }
@@ -192,7 +287,8 @@ bool SemanticAnalyzer::analyze(
     for (const auto& statement :
          program->statements)
     {
-        if (!analyzeStatement(statement))
+        if (!analyzeStatement(
+                statement))
         {
             return false;
         }
